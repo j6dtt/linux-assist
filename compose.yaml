@@ -1,0 +1,81 @@
+# la (linux-assist): Linux command reference for Ubuntu 22.04 and 24.04.
+# Lookups only: the containers never run a command and never see this
+# server's files. Use the la wrapper (./la, or /usr/local/bin/la);
+# it starts one container per lookup and removes it afterwards.
+# ===================== SETTINGS =====================
+# Image: bump the tag only when the image changes. Dev builds
+# it (scripts/build.sh); prod loads it from the bundle.
+x-image: &image la:1.0
+
+x-settings:
+  # --- The model for "la ask" (OpenAI-compatible). Keep ONE block. ---
+  # Dev: NVIDIA's API, key LLM_API_KEY in .env. Questions leave
+  # this host (masked); free tiers may train on prompts.
+  # Removed from the prod bundle by scripts/make-bundle.sh.
+  llm-url:   &llm-url https://integrate.api.nvidia.com/v1
+  llm-model: &llm-model nvidia/nemotron-3-ultra-550b-a55b
+  # Prod: Nemotron 3 Super on vLLM (no key).
+  # llm-url:   &llm-url http://<vllm-host>:8000/v1
+  # llm-model: &llm-model nvidia/nemotron-3-super-120b-a12b
+  # Prod: GPT-5.4 (LLM_API_KEY in .env).
+  # llm-url:   &llm-url https://<gpt-host>/v1
+  # llm-model: &llm-model gpt-5.4
+
+  # Thinking: off | low | high, empty = the model's default.
+  # "off" answers in 2-4 s; every command is checked anyway.
+  llm-reasoning: &llm-reasoning "off"
+  # Reply size. A thinking model spends part of it thinking.
+  llm-max-tokens: &llm-max-tokens "2000"
+  # Seconds to wait for one reply. Past it: the KB search.
+  llm-timeout: &llm-timeout "90"
+  # Check the model server's https certificate? "true" | "false".
+  llm-verify-tls: &llm-verify-tls "true"
+  # A private CA: put it in ./certs, uncomment the volumes lines
+  # under la-ask, then e.g. /certs/ca.pem. Empty = public CAs.
+  llm-ca-file: &llm-ca-file ""
+  # "on" = the model never sees host names, IPs, MACs or user
+  # names: they become hostA.example.com, 198.18.0.1, usera ...
+  # and are swapped back in its answer. This server's own host
+  # name is hidden too. "off" only for a model inside your network.
+  mask: &mask "on"
+  # More words to hide the same way, comma list: a company
+  # name, a short host name, a project name.
+  mask-words: &mask-words ""
+# =================== END SETTINGS ===================
+
+x-locked-down: &locked-down
+  image: *image
+  # Never reach a registry: dev builds the image, prod loads it.
+  pull_policy: never
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  user: "65534:65534"
+  stdin_open: true
+  # No volumes: the KB and man pages are inside the image.
+
+services:
+  # show, find, explain, why, guide, interpret: no network at all.
+  la:
+    <<: *locked-down
+    network_mode: none
+
+  # ask: the same image, with a network to reach the model only.
+  # The docker default bridge: no network is created on this host.
+  la-ask:
+    <<: *locked-down
+    network_mode: bridge
+    environment:
+      LA_LLM_URL: *llm-url
+      LA_LLM_MODEL: *llm-model
+      LA_LLM_REASONING: *llm-reasoning
+      LA_LLM_MAX_TOKENS: *llm-max-tokens
+      LA_LLM_TIMEOUT: *llm-timeout
+      LA_LLM_VERIFY_TLS: *llm-verify-tls
+      LA_LLM_CA_FILE: *llm-ca-file
+      LA_MASK: *mask
+      LA_MASK_WORDS: *mask-words
+      # Secret, from .env next to this file (never in git).
+      LLM_API_KEY: ${LLM_API_KEY:-}
+    # volumes:
+    #   - ./certs:/certs:ro

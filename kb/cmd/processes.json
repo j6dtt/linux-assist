@@ -1,0 +1,560 @@
+[
+ {
+  "name": "ps",
+  "summary": "List processes",
+  "man": [
+   "ps(1)"
+  ],
+  "tasks": [
+   "list processes",
+   "what uses the most memory",
+   "process tree",
+   "how long has a process run"
+  ],
+  "examples": [
+   {
+    "level": "basic",
+    "cmd": "ps aux",
+    "does": "Every process, with user, CPU and memory",
+    "danger": "read-only"
+   },
+   {
+    "level": "intermediate",
+    "cmd": "ps -ef --forest",
+    "does": "Every process as a tree (who started what)",
+    "danger": "read-only"
+   },
+   {
+    "level": "intermediate",
+    "cmd": "ps -eo pid,user,%cpu,%mem,cmd --sort=-%mem | head",
+    "does": "The processes using the most memory",
+    "danger": "read-only"
+   },
+   {
+    "level": "advanced",
+    "cmd": "ps -o pid,etime,cmd -p <PID>",
+    "does": "How long one process has been running",
+    "danger": "read-only"
+   }
+  ],
+  "pitfalls": [
+   "ps aux (no dash) and ps -ef are two styles; both list everything."
+  ],
+  "see_also": [
+   "top",
+   "pgrep",
+   "pstree"
+  ]
+ },
+ {
+  "name": "top",
+  "summary": "Live view of CPU, memory and processes",
+  "man": [
+   "top(1)"
+  ],
+  "tasks": [
+   "what is using CPU",
+   "server is slow",
+   "load average",
+   "snapshot of top for a ticket"
+  ],
+  "examples": [
+   {
+    "level": "basic",
+    "cmd": "top",
+    "does": "Live view. M sorts by memory, P by CPU, 1 shows each CPU, q quits",
+    "danger": "read-only"
+   },
+   {
+    "level": "intermediate",
+    "cmd": "top -o %MEM",
+    "does": "Start sorted by memory",
+    "danger": "read-only"
+   },
+   {
+    "level": "advanced",
+    "cmd": "top -b -n 1 | head -n 20",
+    "does": "One snapshot as plain text, e.g. for a ticket",
+    "danger": "read-only"
+   }
+  ],
+  "pitfalls": [
+   "High 'wa' in the CPU line means waiting for disk, not a busy CPU. Check iostat."
+  ],
+  "see_also": [
+   "htop",
+   "vmstat",
+   "iostat"
+  ]
+ },
+ {
+  "name": "htop",
+  "summary": "Friendlier live process view",
+  "man": [
+   "htop(1)"
+  ],
+  "tasks": [
+   "what is using CPU",
+   "process tree",
+   "one user's processes"
+  ],
+  "examples": [
+   {
+    "level": "basic",
+    "cmd": "htop",
+    "does": "Live view. F6 sort, F5 tree, F9 send a signal, q quits",
+    "danger": "read-only"
+   },
+   {
+    "level": "intermediate",
+    "cmd": "htop -u www-data",
+    "does": "Only one user's processes",
+    "danger": "read-only"
+   }
+  ],
+  "pitfalls": [],
+  "see_also": [
+   "top"
+  ]
+ },
+ {
+  "name": "kill",
+  "summary": "Send a signal to a process (stop it)",
+  "man": [
+   "kill(1)"
+  ],
+  "tasks": [
+   "stop a process",
+   "force kill a process",
+   "list signals"
+  ],
+  "examples": [
+   {
+    "level": "basic",
+    "cmd": "kill <PID>",
+    "does": "Ask a process to stop (TERM)",
+    "danger": "modify"
+   },
+   {
+    "level": "intermediate",
+    "cmd": "kill -s KILL <PID>",
+    "does": "Force it to stop now (KILL, same as kill -9); it cannot clean up",
+    "danger": "modify"
+   },
+   {
+    "level": "intermediate",
+    "cmd": "kill -l",
+    "does": "List signal names and numbers",
+    "danger": "read-only"
+   }
+  ],
+  "pitfalls": [
+   "Try plain kill first and wait a few seconds; KILL gives the process no chance to save its work.",
+   "For a service, use systemctl stop or restart, or systemd may start it again."
+  ],
+  "see_also": [
+   "pkill",
+   "systemctl"
+  ]
+ },
+ {
+  "name": "pkill",
+  "summary": "Signal processes by name",
+  "man": [
+   "pkill(1)"
+  ],
+  "tasks": [
+   "stop a process by name",
+   "stop all of a user's processes",
+   "reload a daemon"
+  ],
+  "examples": [
+   {
+    "level": "basic",
+    "cmd": "pkill -f 'python3 app.py'",
+    "does": "Stop processes whose full command line matches",
+    "danger": "modify"
+   },
+   {
+    "level": "intermediate",
+    "cmd": "sudo pkill -u alice",
+    "does": "Stop every process of one user",
+    "danger": "modify"
+   },
+   {
+    "level": "advanced",
+    "cmd": "sudo pkill --signal HUP rsyslogd",
+    "does": "Send HUP (many daemons reload their config on it)",
+    "danger": "modify"
+   }
+  ],
+  "pitfalls": [
+   "Run pgrep with the same pattern first to see what would be hit."
+  ],
+  "see_also": [
+   "pgrep",
+   "kill"
+  ]
+ },
+ {
+  "name": "pgrep",
+  "summary": "Find process IDs by name",
+  "man": [
+   "pgrep(1)"
+  ],
+  "tasks": [
+   "find a process ID",
+   "is a process running"
+  ],
+  "examples": [
+   {
+    "level": "basic",
+    "cmd": "pgrep -a nginx",
+    "does": "IDs and command lines of matching processes",
+    "danger": "read-only"
+   },
+   {
+    "level": "intermediate",
+    "cmd": "pgrep -u www-data -l",
+    "does": "One user's processes, with names",
+    "danger": "read-only"
+   },
+   {
+    "level": "intermediate",
+    "cmd": "pgrep -f gunicorn",
+    "does": "Match anywhere in the full command line",
+    "danger": "read-only"
+   }
+  ],
+  "pitfalls": [],
+  "see_also": [
+   "ps",
+   "pkill"
+  ]
+ },
+ {
+  "name": "nice",
+  "summary": "Start a command with lower priority",
+  "man": [
+   "nice(1)"
+  ],
+  "tasks": [
+   "run a backup without slowing the server",
+   "lower priority"
+  ],
+  "examples": [
+   {
+    "level": "basic",
+    "cmd": "nice -n 10 tar -czf /backup/srv.tgz /srv",
+    "does": "Run a heavy job at lower CPU priority",
+    "danger": "modify"
+   }
+  ],
+  "pitfalls": [
+   "nice affects CPU only. For disk, also use ionice -c 3."
+  ],
+  "see_also": [
+   "renice",
+   "ionice"
+  ]
+ },
+ {
+  "name": "renice",
+  "summary": "Change the priority of a running process",
+  "man": [
+   "renice(1)"
+  ],
+  "tasks": [
+   "lower priority of a running process"
+  ],
+  "examples": [
+   {
+    "level": "basic",
+    "cmd": "sudo renice -n 10 -p <PID>",
+    "does": "Lower a running process's CPU priority",
+    "danger": "modify"
+   }
+  ],
+  "pitfalls": [
+   "Only root can raise priority (a negative value)."
+  ],
+  "see_also": [
+   "nice",
+   "top"
+  ]
+ },
+ {
+  "name": "lsof",
+  "summary": "Which processes have which files and ports open",
+  "man": [
+   "lsof(8)"
+  ],
+  "tasks": [
+   "which process is using a port",
+   "deleted file still using disk space",
+   "who has a file open",
+   "files a process has open",
+   "cannot unmount, device is busy"
+  ],
+  "examples": [
+   {
+    "level": "basic",
+    "cmd": "sudo lsof -i :80",
+    "does": "Processes using port 80",
+    "danger": "read-only"
+   },
+   {
+    "level": "intermediate",
+    "cmd": "sudo lsof +L1",
+    "does": "Deleted files still held open (their space is not freed yet)",
+    "danger": "read-only"
+   },
+   {
+    "level": "intermediate",
+    "cmd": "sudo lsof /var/log/syslog",
+    "does": "Who has this file open",
+    "danger": "read-only"
+   },
+   {
+    "level": "advanced",
+    "cmd": "sudo lsof -p <PID>",
+    "does": "Every file and socket one process has open",
+    "danger": "read-only"
+   },
+   {
+    "level": "advanced",
+    "cmd": "sudo lsof +D /mnt/data",
+    "does": "Who is using files under a folder (when umount says busy)",
+    "danger": "read-only"
+   }
+  ],
+  "pitfalls": [
+   "Without sudo you only see your own processes."
+  ],
+  "see_also": [
+   "ss",
+   "fuser"
+  ]
+ },
+ {
+  "name": "free",
+  "summary": "Memory and swap use",
+  "man": [
+   "free(1)"
+  ],
+  "tasks": [
+   "how much memory is free",
+   "is swap used",
+   "out of memory"
+  ],
+  "examples": [
+   {
+    "level": "basic",
+    "cmd": "free -h",
+    "does": "Memory and swap in K, M and G",
+    "danger": "read-only"
+   },
+   {
+    "level": "intermediate",
+    "cmd": "free -h -s 5",
+    "does": "Repeat every 5 seconds (Ctrl-C stops)",
+    "danger": "read-only"
+   }
+  ],
+  "pitfalls": [
+   "Read the 'available' column. Linux uses spare memory for cache, so 'free' is usually small and that is normal."
+  ],
+  "see_also": [
+   "vmstat",
+   "top"
+  ]
+ },
+ {
+  "name": "uptime",
+  "summary": "How long the server has run, and its load",
+  "man": [
+   "uptime(1)"
+  ],
+  "tasks": [
+   "how long since reboot",
+   "load average"
+  ],
+  "examples": [
+   {
+    "level": "basic",
+    "cmd": "uptime",
+    "does": "Time up, users, and load average over 1, 5 and 15 minutes",
+    "danger": "read-only"
+   },
+   {
+    "level": "basic",
+    "cmd": "uptime -s",
+    "does": "The date and time it started",
+    "danger": "read-only"
+   }
+  ],
+  "pitfalls": [
+   "Load average counts processes running or waiting. Compare it with the number of CPUs (nproc)."
+  ],
+  "see_also": [
+   "w",
+   "nproc",
+   "top"
+  ]
+ },
+ {
+  "name": "vmstat",
+  "summary": "CPU, memory, swap and I/O every few seconds",
+  "man": [
+   "vmstat(8)"
+  ],
+  "tasks": [
+   "server is slow",
+   "is the server swapping",
+   "is the disk the bottleneck"
+  ],
+  "examples": [
+   {
+    "level": "basic",
+    "cmd": "vmstat 1 5",
+    "does": "5 lines, one per second. si/so above 0 = swapping; wa = waiting for disk",
+    "danger": "read-only"
+   },
+   {
+    "level": "intermediate",
+    "cmd": "vmstat -w 1",
+    "does": "Wide columns, until Ctrl-C",
+    "danger": "read-only"
+   },
+   {
+    "level": "intermediate",
+    "cmd": "vmstat -s",
+    "does": "Memory and event totals as a list",
+    "danger": "read-only"
+   }
+  ],
+  "pitfalls": [
+   "The first line is the average since boot. Read the lines after it."
+  ],
+  "see_also": [
+   "iostat",
+   "free",
+   "top"
+  ]
+ },
+ {
+  "name": "iostat",
+  "summary": "Disk load per device",
+  "man": [
+   "iostat(1)"
+  ],
+  "tasks": [
+   "is the disk the bottleneck",
+   "disk utilisation",
+   "server is slow"
+  ],
+  "examples": [
+   {
+    "level": "basic",
+    "cmd": "iostat -xz 1 3",
+    "does": "Per-disk load, 3 reports. %util near 100 = the disk is the bottleneck",
+    "danger": "read-only"
+   }
+  ],
+  "pitfalls": [
+   "iostat is in the sysstat package; install it if the command is missing.",
+   "The first report is the average since boot."
+  ],
+  "see_also": [
+   "vmstat",
+   "top"
+  ]
+ },
+ {
+  "name": "pidstat",
+  "summary": "CPU, memory and disk use per process, every few seconds",
+  "man": [
+   "pidstat(1)"
+  ],
+  "tasks": [
+   "which process uses the disk",
+   "which process does disk I/O",
+   "which process uses the CPU",
+   "process memory over time"
+  ],
+  "examples": [
+   {
+    "level": "basic",
+    "cmd": "pidstat -d 1 5",
+    "does": "Disk reads and writes per process (kB/s), 5 times, one per second",
+    "danger": "read-only"
+   },
+   {
+    "level": "basic",
+    "cmd": "pidstat -u 1 5",
+    "does": "CPU use per process, 5 times, one per second",
+    "danger": "read-only"
+   },
+   {
+    "level": "intermediate",
+    "cmd": "pidstat -r 1 5",
+    "does": "Memory per process and page faults, 5 times",
+    "danger": "read-only"
+   },
+   {
+    "level": "advanced",
+    "cmd": "pidstat -d -p <PID> 2",
+    "does": "Disk I/O of one process every 2 seconds, until Ctrl-C",
+    "danger": "read-only"
+   }
+  ],
+  "pitfalls": [
+   "Without sudo, other users' processes may be missing from the list.",
+   "It shows only processes that were active during the interval."
+  ],
+  "see_also": [
+   "iostat",
+   "top",
+   "vmstat"
+  ]
+ },
+ {
+  "name": "strace",
+  "summary": "Watch the system calls a process makes",
+  "man": [
+   "strace(1)"
+  ],
+  "tasks": [
+   "what is a process doing",
+   "which files does a program open",
+   "why does a program hang"
+  ],
+  "examples": [
+   {
+    "level": "intermediate",
+    "cmd": "sudo strace -f -tt -p <PID>",
+    "does": "Attach to a running process and its threads, with times (Ctrl-C detaches)",
+    "danger": "read-only"
+   },
+   {
+    "level": "advanced",
+    "cmd": "strace -e trace=openat cat /etc/hostname",
+    "does": "Only file opens: shows which files a program reads",
+    "danger": "read-only"
+   },
+   {
+    "level": "advanced",
+    "cmd": "strace -c ls /etc",
+    "does": "Count system calls and time spent in each",
+    "danger": "read-only"
+   }
+  ],
+  "pitfalls": [
+   "strace slows the traced process a lot. Keep it short on production."
+  ],
+  "see_also": [
+   "lsof",
+   "ps"
+  ]
+ }
+]

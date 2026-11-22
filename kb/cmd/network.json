@@ -1,0 +1,194 @@
+[
+{"name": "ip", "summary": "Network interfaces, addresses and routes", "man": ["ip(8)"],
+ "tasks": ["show IP address", "list network interfaces", "show routes", "default gateway", "which interface reaches an address", "interface errors and drops", "add a temporary IP address"],
+ "examples": [
+  {"level": "basic", "cmd": "ip -br addr", "does": "One line per interface: state and addresses", "danger": "read-only"},
+  {"level": "basic", "cmd": "ip route", "does": "Routes, including the default gateway", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "ip -br link", "does": "Interfaces with state and MAC address", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "ip route get 192.0.2.10", "does": "Which interface and gateway are used to reach an address", "danger": "read-only"},
+  {"level": "advanced", "cmd": "ip -s link show dev <IFACE>", "does": "Packet, error and drop counters for one interface", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo ip addr add 192.0.2.20/24 dev <IFACE>", "does": "Add an address until the next reboot (lasting changes go in netplan)", "danger": "modify"}],
+ "pitfalls": ["Changes made with ip are lost at reboot. On Ubuntu, lasting network settings live in /etc/netplan/.",
+              "ifconfig and route (net-tools) are old; ip replaces them."],
+ "see_also": ["ss", "netplan", "resolvectl"]},
+
+{"name": "ss", "summary": "Sockets: listening ports and connections", "man": ["ss(8)"],
+ "tasks": ["which ports are listening", "which process is using a port", "open connections", "connection counts", "address already in use"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo ss -tulpn", "does": "Listening TCP and UDP ports, with the process for each", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "ss -tn state established", "does": "Open TCP connections", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "ss -s", "does": "Counts of sockets by type and state", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo ss -tlpn 'sport = :443'", "does": "Who listens on one port", "danger": "read-only"},
+  {"level": "advanced", "cmd": "ss -tip", "does": "TCP details per connection: round-trip time, window, retransmits", "danger": "read-only"}],
+ "pitfalls": ["Without sudo, -p cannot show other users' processes.", "netstat (net-tools) is old; ss replaces it."],
+ "see_also": ["lsof", "ip"]},
+
+{"name": "ping", "summary": "Is a host reachable", "man": ["ping(8)"],
+ "tasks": ["is a host reachable", "test network", "find the path MTU"],
+ "examples": [
+  {"level": "basic", "cmd": "ping -c 4 192.0.2.1", "does": "Send 4 pings and show the results", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "ping -4 -c 3 <HOST>", "does": "Force IPv4", "danger": "read-only"},
+  {"level": "advanced", "cmd": "ping -c 3 -M do -s 1472 <HOST>", "does": "Test whether 1500-byte packets pass without fragmenting", "danger": "read-only"}],
+ "pitfalls": ["No reply does not always mean down: firewalls often drop ping. Test the real port with nc -zv."],
+ "see_also": ["tracepath", "mtr", "nc"]},
+
+{"name": "tracepath", "summary": "The route to a host, hop by hop", "man": ["tracepath(8)"],
+ "tasks": ["where does the connection stop", "route to a host"],
+ "examples": [
+  {"level": "basic", "cmd": "tracepath -n <HOST>", "does": "Each hop on the way, as addresses, with the path MTU", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["mtr", "traceroute", "ping"]},
+
+{"name": "mtr", "summary": "Live route and packet loss per hop", "man": ["mtr(8)"],
+ "tasks": ["packet loss", "where is the network slow"],
+ "examples": [
+  {"level": "intermediate", "cmd": "mtr -rwc 10 <HOST>", "does": "A report after 10 rounds: loss and delay at each hop", "danger": "read-only"}],
+ "pitfalls": ["Loss at one middle hop only is often just that router ignoring probes. Loss that continues to the end is real."],
+ "see_also": ["tracepath", "ping"]},
+
+{"name": "dig", "summary": "Ask DNS servers directly", "man": ["dig(1)"],
+ "tasks": ["DNS lookup", "which IP does a name resolve to", "reverse DNS", "ask a specific DNS server", "DNS not working"],
+ "examples": [
+  {"level": "basic", "cmd": "dig +short example.com", "does": "Just the addresses for a name", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "dig @192.0.2.53 example.com", "does": "Ask one particular DNS server", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "dig -x 192.0.2.10", "does": "Reverse lookup: the name for an address", "danger": "read-only"},
+  {"level": "advanced", "cmd": "dig example.com MX", "does": "One record type (MX, TXT, NS, ...)", "danger": "read-only"}],
+ "pitfalls": ["dig asks DNS directly. Programs also read /etc/hosts; getent hosts NAME shows what they really get."],
+ "see_also": ["resolvectl", "getent"]},
+
+{"name": "resolvectl", "summary": "The DNS settings the server uses (systemd-resolved)", "man": ["resolvectl(1)"],
+ "tasks": ["which DNS server is used", "DNS not working", "flush DNS cache"],
+ "examples": [
+  {"level": "basic", "cmd": "resolvectl status", "does": "DNS servers and search domains per interface", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "resolvectl query example.com", "does": "Resolve a name the way programs on this server do", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo resolvectl flush-caches", "does": "Empty the DNS cache", "danger": "modify"}],
+ "pitfalls": ["/etc/resolv.conf points to 127.0.0.53, the local resolver. The real DNS servers are in resolvectl status."],
+ "see_also": ["dig", "netplan"]},
+
+{"name": "curl", "summary": "Make HTTP and other requests", "man": ["curl(1)"],
+ "tasks": ["test a web server", "HTTP status code", "show response headers", "test a server before changing DNS", "download a file"],
+ "examples": [
+  {"level": "basic", "cmd": "curl -I https://example.com", "does": "Response headers only", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "curl -sS -o /dev/null -w '%{http_code}\\n' https://example.com", "does": "Only the HTTP status code", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "curl -v https://example.com", "does": "Show the connection, TLS and headers step by step", "danger": "read-only"},
+  {"level": "advanced", "cmd": "curl --resolve example.com:443:192.0.2.10 https://example.com/", "does": "Send the request to one server address, keeping the name (test before a DNS change)", "danger": "read-only"},
+  {"level": "advanced", "cmd": "curl -fsSLO https://example.com/file.tgz", "does": "Download a file under its own name, failing on HTTP errors", "danger": "modify"}],
+ "pitfalls": ["-k skips the certificate check. Use it only to diagnose, never in scripts."],
+ "see_also": ["wget", "openssl"]},
+
+{"name": "wget", "summary": "Download files", "man": ["wget(1)"],
+ "tasks": ["download a file", "resume a download"],
+ "examples": [
+  {"level": "basic", "cmd": "wget https://example.com/file.tgz", "does": "Download a file", "danger": "modify"},
+  {"level": "intermediate", "cmd": "wget -c https://example.com/file.tgz", "does": "Continue a download that was cut off", "danger": "modify"},
+  {"level": "intermediate", "cmd": "wget -O /tmp/app.tgz https://example.com/file.tgz", "does": "Save under a chosen name", "danger": "modify"}],
+ "pitfalls": [],
+ "see_also": ["curl"]},
+
+{"name": "netplan", "summary": "Ubuntu's network configuration", "man": ["netplan(5)"],
+ "tasks": ["set a static IP", "apply network changes", "apply network changes safely", "network config"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo netplan try", "does": "Apply the config; it rolls back after 120 seconds unless you confirm", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo netplan apply", "does": "Apply the config now, no rollback", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo netplan generate", "does": "Check the YAML and write the backend config, without applying it", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo netplan get", "does": "The merged config from every file in /etc/netplan/", "danger": "read-only"}],
+ "pitfalls": ["On a remote server, use netplan try, not apply: a mistake rolls back instead of cutting you off.",
+              "YAML uses spaces only. A tab or a wrong indent breaks the file."],
+ "see_also": ["ip", "resolvectl"]},
+
+{"name": "ufw", "summary": "Ubuntu's simple firewall", "man": ["ufw(8)"],
+ "tasks": ["firewall status", "open a port", "allow ssh", "allow a port from one network", "remove a firewall rule", "enable the firewall"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo ufw status verbose", "does": "Firewall on or off, default policy and rules", "danger": "read-only"},
+  {"level": "basic", "cmd": "sudo ufw allow 22/tcp", "does": "Allow SSH", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo ufw allow from 192.0.2.0/24 to any port 5432 proto tcp", "does": "Allow one port from one network only", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo ufw status numbered", "does": "Rules with numbers, for deleting", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo ufw delete allow 80/tcp", "does": "Remove a rule", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo ufw enable", "does": "Turn the firewall on (now and at boot)", "danger": "modify"}],
+ "pitfalls": ["On a remote server, allow SSH BEFORE ufw enable, or you lock yourself out.",
+              "Docker publishes ports past ufw rules; ufw does not protect published container ports."],
+ "see_also": ["nft", "iptables", "ss"]},
+
+{"name": "nft", "summary": "The kernel firewall rules (nftables)", "man": ["nft(8)"],
+ "tasks": ["show all firewall rules", "list firewall tables"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo nft list ruleset", "does": "Every firewall rule, from ufw, iptables, Docker and others", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo nft list tables", "does": "Just the table names", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["ufw", "iptables"]},
+
+{"name": "iptables", "summary": "Firewall rules, older interface (uses nftables underneath)", "man": ["iptables(8)"],
+ "tasks": ["list firewall rules", "allow a port with iptables"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo iptables -L -n -v --line-numbers", "does": "Rules with packet counts and numbers", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo iptables -S", "does": "Rules written as the commands that create them", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo iptables -A INPUT -p tcp --dport 22 -j ACCEPT", "does": "Allow incoming SSH (until reboot unless saved)", "danger": "modify"}],
+ "pitfalls": ["Rules added with iptables are lost at reboot unless saved (e.g. the iptables-persistent package). On Ubuntu, ufw is the usual way."],
+ "see_also": ["nft", "ufw"]},
+
+{"name": "tcpdump", "summary": "Capture network packets", "man": ["tcpdump(8)"],
+ "tasks": ["capture traffic", "is traffic reaching the server", "capture DNS traffic", "save a capture to a file"],
+ "examples": [
+  {"level": "intermediate", "cmd": "sudo tcpdump -i any -nn port 53", "does": "DNS packets on every interface, without name lookups", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo tcpdump -i <IFACE> -nn host 192.0.2.10 and port 443", "does": "Traffic to and from one host on one port", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo tcpdump -i any -nn -c 1000 -w /tmp/capture.pcap port 443", "does": "Save 1000 packets to a file for Wireshark", "danger": "modify"}],
+ "pitfalls": ["Captures can hold passwords and private data. Delete the file when done."],
+ "see_also": ["ss", "nc"]},
+
+{"name": "ethtool", "summary": "Network card speed, driver and counters", "man": ["ethtool(8)"],
+ "tasks": ["link speed", "network card driver", "is the cable connected"],
+ "examples": [
+  {"level": "basic", "cmd": "ethtool <IFACE>", "does": "Speed, duplex and whether a link is detected", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "ethtool -i <IFACE>", "does": "Driver and firmware version", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo ethtool -S <IFACE>", "does": "The card's own counters, including errors", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["ip"]},
+
+{"name": "nc", "summary": "Test TCP ports (netcat)", "man": ["nc(1)"],
+ "tasks": ["is a port open", "test a firewall rule", "can I reach the database port"],
+ "examples": [
+  {"level": "basic", "cmd": "nc -zv <HOST> 443", "does": "Can a TCP connection be opened to this port", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "nc -zv -w 3 <HOST> 5432", "does": "Same, giving up after 3 seconds", "danger": "read-only"},
+  {"level": "advanced", "cmd": "nc -l 9000", "does": "Listen on a port, to test a firewall from the other side", "danger": "read-only"}],
+ "pitfalls": ["Ubuntu's nc is the OpenBSD version; its options differ from other netcats."],
+ "see_also": ["ss", "curl"]},
+
+{"name": "ssh", "summary": "Log in to another server", "man": ["ssh(1)"],
+ "tasks": ["connect to a server", "ssh on another port", "ssh through a jump host", "port forwarding", "debug ssh login"],
+ "examples": [
+  {"level": "basic", "cmd": "ssh alice@<HOST>", "does": "Log in", "danger": "read-only"},
+  {"level": "basic", "cmd": "ssh -p 2222 alice@<HOST>", "does": "Log in on another port", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "ssh -J alice@<BASTION> alice@<HOST>", "does": "Go through a jump host", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "ssh -L 8080:localhost:80 alice@<HOST>", "does": "Local port 8080 reaches port 80 on the server", "danger": "read-only"},
+  {"level": "advanced", "cmd": "ssh -v alice@<HOST>", "does": "Show each step of the login, to see why it fails", "danger": "read-only"}],
+ "pitfalls": ["'REMOTE HOST IDENTIFICATION HAS CHANGED' can mean a rebuilt server or an attack. Confirm the new key before removing the old one with ssh-keygen -R."],
+ "see_also": ["scp", "ssh-keygen", "rsync"]},
+
+{"name": "scp", "summary": "Copy files over SSH", "man": ["scp(1)"],
+ "tasks": ["copy a file to another server"],
+ "examples": [
+  {"level": "basic", "cmd": "scp backup.tgz alice@<HOST>:/tmp/", "does": "Copy a file to another server", "danger": "modify"},
+  {"level": "intermediate", "cmd": "scp -r -P 2222 site/ alice@<HOST>:/srv/", "does": "Copy a folder, SSH on port 2222 (capital -P)", "danger": "modify"}],
+ "pitfalls": ["scp uses -P for the port; ssh uses -p.", "For big or repeated copies use rsync: it can resume and skips unchanged files."],
+ "see_also": ["rsync", "ssh"]},
+
+{"name": "ssh-keygen", "summary": "Create and inspect SSH keys", "man": ["ssh-keygen(1)"],
+ "tasks": ["create an ssh key", "fingerprint of a host key", "remove an old host key"],
+ "examples": [
+  {"level": "basic", "cmd": "ssh-keygen -t ed25519 -C 'alice@workstation'", "does": "Create a new key pair", "danger": "modify"},
+  {"level": "intermediate", "cmd": "ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub", "does": "Fingerprint of this server's host key (compare with what clients see)", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "ssh-keygen -R <HOST>", "does": "Remove a server's old key from known_hosts", "danger": "modify"}],
+ "pitfalls": [],
+ "see_also": ["ssh"]},
+
+{"name": "rsync", "summary": "Copy and sync files, locally or over SSH", "man": ["rsync(1)"],
+ "tasks": ["copy a folder to another server", "sync two folders", "resume a big copy", "back up a folder"],
+ "examples": [
+  {"level": "basic", "cmd": "rsync -avh /srv/app/ /backup/app/", "does": "Copy a folder, keeping permissions and times; only changed files", "danger": "modify"},
+  {"level": "intermediate", "cmd": "rsync -avh --dry-run --delete /srv/app/ /backup/app/", "does": "Show what a mirror would copy and delete, without doing it", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "rsync -avh --delete /srv/app/ /backup/app/", "does": "Mirror: also delete files in the target that are gone from the source", "danger": "destructive"},
+  {"level": "advanced", "cmd": "rsync -avhz --partial --progress -e 'ssh -p 2222' /srv/data/ alice@<HOST>:/srv/data/", "does": "Over SSH on port 2222, compressed, resumable, with progress", "danger": "modify"}],
+ "pitfalls": ["A slash at the end of the source matters: src/ copies what is inside src; src copies the folder itself.",
+              "Always run --delete with --dry-run first."],
+ "see_also": ["scp", "cp"]}
+]

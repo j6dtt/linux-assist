@@ -1,0 +1,48 @@
+{
+ "id": "journal-size",
+ "title": "Limit how much disk the system journal uses",
+ "tasks": [
+  "journal too big",
+  "limit journal size",
+  "journalctl using too much space"
+ ],
+ "placeholders": {},
+ "steps": [
+  {
+   "stage": "check",
+   "say": "Space the journal uses now.",
+   "cmd": "journalctl --disk-usage",
+   "danger": "read-only"
+  },
+  {
+   "stage": "prepare",
+   "say": "Create the folder for journald settings.",
+   "cmd": "sudo mkdir -p /etc/systemd/journald.conf.d",
+   "danger": "modify",
+   "rollback": "Not needed."
+  },
+  {
+   "stage": "change",
+   "say": "Create this file to cap the journal at 1 GB.",
+   "cmd": "sudoedit /etc/systemd/journald.conf.d/size.conf",
+   "danger": "modify",
+   "rollback": "Delete the file and restart systemd-journald.",
+   "rollback_cmd": "sudo rm /etc/systemd/journald.conf.d/size.conf",
+   "content": "[Journal]\nSystemMaxUse=1G\n"
+  },
+  {
+   "stage": "change",
+   "say": "Load the new setting.",
+   "cmd": "sudo systemctl restart systemd-journald",
+   "danger": "modify",
+   "rollback": "Not needed."
+  },
+  {
+   "stage": "verify",
+   "say": "Usage stays under the limit from now on.",
+   "cmd": "journalctl --disk-usage",
+   "danger": "read-only"
+  }
+ ],
+ "pitfalls": []
+}

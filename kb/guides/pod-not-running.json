@@ -1,0 +1,74 @@
+{
+ "id": "pod-not-running",
+ "title": "A Kubernetes pod is not running",
+ "tasks": [
+  "pod not running",
+  "pod crashloopbackoff",
+  "pod pending",
+  "pod imagepullbackoff",
+  "pod keeps restarting",
+  "pod not ready",
+  "pod error"
+ ],
+ "placeholders": {
+  "NAMESPACE": {
+   "means": "the pod's namespace",
+   "find": "kubectl get pods -A"
+  },
+  "POD": {
+   "means": "the pod's name",
+   "find": "kubectl get pods -n <NAMESPACE>"
+  }
+ },
+ "steps": [
+  {
+   "stage": "check",
+   "say": "Which cluster kubectl is talking to.",
+   "cmd": "kubectl config current-context",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "STATUS and RESTARTS: Pending, CrashLoopBackOff, ImagePullBackOff, Error, OOMKilled.",
+   "cmd": "kubectl get pods -n <NAMESPACE> -o wide",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "The reason. Events at the bottom: a failed image pull, no node fits (FailedScheduling), a failing probe. Last State: OOMKilled means it ran out of memory. Controlled By: what recreates it.",
+   "cmd": "kubectl describe pod <POD> -n <NAMESPACE>",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "CrashLoopBackOff: the log of the run that crashed.",
+   "cmd": "kubectl logs <POD> -n <NAMESPACE> --previous",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Everything that happened in the namespace lately, newest last.",
+   "cmd": "kubectl get events -n <NAMESPACE> --sort-by=.lastTimestamp",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Pending: are the nodes Ready, and is one cordoned (SchedulingDisabled)?",
+   "cmd": "kubectl get nodes",
+   "danger": "read-only"
+  },
+  {
+   "stage": "change",
+   "say": "After fixing the cause, replace the pod: its deployment, statefulset or daemonset starts a new one.",
+   "cmd": "kubectl delete pod <POD> -n <NAMESPACE>",
+   "danger": "destructive",
+   "rollback": "Not needed when Controlled By (step 3) names a ReplicaSet, StatefulSet or DaemonSet: it starts a new pod. A pod with no controller is gone for good."
+  },
+  {
+   "stage": "verify",
+   "say": "The new pod should reach Running with READY n/n.",
+   "cmd": "kubectl get pods -n <NAMESPACE> -o wide",
+   "danger": "read-only"
+  }
+ ]
+}

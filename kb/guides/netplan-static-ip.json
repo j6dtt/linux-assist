@@ -1,0 +1,103 @@
+{
+ "id": "netplan-static-ip",
+ "title": "Set a static IP address with netplan",
+ "tasks": [
+  "set a static IP",
+  "static IP netplan",
+  "change IP address",
+  "configure network"
+ ],
+ "placeholders": {
+  "IFACE": {
+   "means": "the interface, e.g. ens18",
+   "find": "ip -br link"
+  },
+  "ADDRESS": {
+   "means": "the new address with its prefix, e.g. 192.0.2.20/24",
+   "find": "ip -br addr"
+  },
+  "GATEWAY": {
+   "means": "the default gateway, e.g. 192.0.2.1",
+   "find": "ip route"
+  },
+  "DNS": {
+   "means": "the DNS server, e.g. 192.0.2.53",
+   "find": "resolvectl status"
+  }
+ },
+ "steps": [
+  {
+   "stage": "check",
+   "say": "Current interfaces and addresses.",
+   "cmd": "ip -br addr",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Current default gateway.",
+   "cmd": "ip route",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Other netplan files: if one also sets this interface, the settings merge.",
+   "cmd": "sudo netplan get",
+   "danger": "read-only"
+  },
+  {
+   "stage": "prepare",
+   "say": "Back up the current netplan files.",
+   "cmd": "sudo cp -a /etc/netplan /root/netplan-backup",
+   "danger": "modify",
+   "rollback": "Remove the backup when done:",
+   "rollback_cmd": "sudo rm -r /root/netplan-backup",
+   "rollback_danger": "destructive"
+  },
+  {
+   "stage": "change",
+   "say": "Create a new file with this content (spaces only, no tabs).",
+   "cmd": "sudoedit /etc/netplan/60-static.yaml",
+   "danger": "modify",
+   "rollback": "Delete the file, then run sudo netplan apply.",
+   "rollback_cmd": "sudo rm /etc/netplan/60-static.yaml",
+   "content": "network:\n  version: 2\n  ethernets:\n    <IFACE>:\n      dhcp4: false\n      addresses: [<ADDRESS>]\n      routes:\n        - to: default\n          via: <GATEWAY>\n      nameservers:\n        addresses: [<DNS>]\n"
+  },
+  {
+   "stage": "change",
+   "say": "Only root may read it (netplan warns about open permissions).",
+   "cmd": "sudo chmod 600 /etc/netplan/60-static.yaml",
+   "danger": "modify",
+   "rollback": "Not needed."
+  },
+  {
+   "stage": "check",
+   "say": "Check the files for mistakes without applying them.",
+   "cmd": "sudo netplan generate",
+   "danger": "modify",
+   "rollback": "Nothing applied yet: delete the file to undo."
+  },
+  {
+   "stage": "change",
+   "say": "Apply with automatic rollback: press Enter within 120 seconds to keep it.",
+   "cmd": "sudo netplan try",
+   "danger": "modify",
+   "rollback": "If the connection drops, do nothing: it reverts by itself after 120 seconds."
+  },
+  {
+   "stage": "verify",
+   "say": "The new address is set.",
+   "cmd": "ip -br addr show dev <IFACE>",
+   "danger": "read-only"
+  },
+  {
+   "stage": "verify",
+   "say": "The default route uses the new gateway.",
+   "cmd": "ip route",
+   "danger": "read-only"
+  }
+ ],
+ "pitfalls": [
+  "On a remote server, never use netplan apply for this: a mistake cuts you off. Use netplan try.",
+  "If cloud-init manages the network, it may rewrite /etc/netplan/50-cloud-init.yaml. Check that file's header."
+ ]
+}

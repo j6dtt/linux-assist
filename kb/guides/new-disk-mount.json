@@ -1,0 +1,102 @@
+{
+ "id": "new-disk-mount",
+ "title": "Partition, format and mount a new disk",
+ "tasks": [
+  "mount a new disk",
+  "format a new disk",
+  "add a disk",
+  "permanent mount fstab"
+ ],
+ "placeholders": {
+  "DISK": {
+   "means": "the new, empty disk, e.g. sdb",
+   "find": "lsblk"
+  },
+  "PART": {
+   "means": "the partition created on it, e.g. sdb1",
+   "find": "lsblk"
+  },
+  "MOUNT": {
+   "means": "the folder to mount it on, e.g. /data",
+   "find": "findmnt"
+  },
+  "UUID": {
+   "means": "the partition's UUID",
+   "find": "sudo blkid"
+  }
+ },
+ "steps": [
+  {
+   "stage": "check",
+   "say": "Find the new disk: TYPE disk, no partitions, no FSTYPE, no mount point.",
+   "cmd": "lsblk -f",
+   "danger": "read-only"
+  },
+  {
+   "stage": "prepare",
+   "say": "One GPT partition filling the disk. This erases the disk.",
+   "cmd": "sudo parted -s /dev/<DISK> mklabel gpt mkpart primary ext4 0% 100%",
+   "danger": "destructive",
+   "rollback": "No undo: the old partition table is gone."
+  },
+  {
+   "stage": "prepare",
+   "say": "Create an ext4 filesystem on the new partition.",
+   "cmd": "sudo mkfs.ext4 -L data /dev/<PART>",
+   "danger": "destructive",
+   "rollback": "No undo: whatever was on the partition is gone."
+  },
+  {
+   "stage": "prepare",
+   "say": "Create the mount folder.",
+   "cmd": "sudo mkdir -p <MOUNT>",
+   "danger": "modify",
+   "rollback": "Remove the empty folder:",
+   "rollback_cmd": "sudo rmdir <MOUNT>"
+  },
+  {
+   "stage": "check",
+   "say": "The partition's UUID for /etc/fstab.",
+   "cmd": "sudo blkid -s UUID -o value /dev/<PART>",
+   "danger": "read-only"
+  },
+  {
+   "stage": "change",
+   "say": "Add this line at the end of /etc/fstab. nofail lets the server boot even if the disk is missing.",
+   "cmd": "sudoedit /etc/fstab",
+   "danger": "modify",
+   "rollback": "Delete the line again.",
+   "content": "UUID=<UUID>  <MOUNT>  ext4  defaults,nofail  0  2\n"
+  },
+  {
+   "stage": "check",
+   "say": "Check /etc/fstab for mistakes. Fix any error before going on.",
+   "cmd": "sudo findmnt --verify",
+   "danger": "read-only"
+  },
+  {
+   "stage": "change",
+   "say": "Tell systemd about the changed fstab.",
+   "cmd": "sudo systemctl daemon-reload",
+   "danger": "modify",
+   "rollback": "Not needed."
+  },
+  {
+   "stage": "change",
+   "say": "Mount everything in fstab: the same as a reboot would.",
+   "cmd": "sudo mount -a",
+   "danger": "modify",
+   "rollback": "Unmount it:",
+   "rollback_cmd": "sudo umount <MOUNT>"
+  },
+  {
+   "stage": "verify",
+   "say": "Mounted, with the expected size.",
+   "cmd": "df -h <MOUNT>",
+   "danger": "read-only"
+  }
+ ],
+ "pitfalls": [
+  "A wrong fstab line can stop the next boot. Never skip findmnt --verify and mount -a."
+ ]
+}

@@ -1,0 +1,41 @@
+# Packages installed in the Ubuntu build stages, only so their man pages and
+# command names can be collected. None of them goes into the final image.
+# A name that a release doesn't have is skipped and listed in meta.json.
+
+# man itself, and Python for the collector script
+man-db manpages python3
+
+# files, text, archives
+coreutils findutils grep sed mawk diffutils less file tree bsdextrautils
+tar gzip bzip2 xz-utils zstd zip unzip cpio rsync
+
+# users, permissions, security, certificates
+sudo passwd login adduser acl attr apparmor apparmor-utils auditd openssl
+gnupg needrestart ca-certificates
+
+# processes and performance
+procps psmisc lsof sysstat htop strace
+
+# systemd, logs, scheduling
+systemd systemd-timesyncd cron logrotate rsyslog
+
+# networking
+iproute2 iputils-ping iputils-tracepath traceroute mtr-tiny ethtool
+netplan.io openssh-client openssh-server curl wget bind9-dnsutils
+nftables iptables ufw tcpdump netcat-openbsd
+
+# storage
+util-linux fdisk parted e2fsprogs xfsprogs btrfs-progs dosfstools lvm2
+mdadm cryptsetup-bin smartmontools nvme-cli nfs-common quota
+
+# packages
+apt dpkg apt-utils unattended-upgrades
+
+# hardware and kernel
+kmod pciutils usbutils dmidecode lshw
+
+# editors and terminals
+vim-tiny nano tmux screen git
+
+# Last: on 24.04 it is its own package and changes name resolution setup.
+systemd-resolved

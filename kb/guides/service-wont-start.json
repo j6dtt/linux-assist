@@ -1,0 +1,80 @@
+{
+ "id": "service-wont-start",
+ "title": "A systemd service won't start",
+ "tasks": [
+  "service won't start",
+  "service failed",
+  "job for service failed",
+  "start request repeated too quickly",
+  "service keeps restarting"
+ ],
+ "placeholders": {
+  "UNIT": {
+   "means": "the service name, e.g. nginx",
+   "find": "systemctl --failed"
+  }
+ },
+ "steps": [
+  {
+   "stage": "check",
+   "say": "State, exit code and the last log lines.",
+   "cmd": "systemctl status <UNIT>",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "More of its log: the real error is usually here.",
+   "cmd": "journalctl -u <UNIT> -n 100 --no-pager",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "The unit as systemd sees it: ExecStart shows the program, User the account it runs as.",
+   "cmd": "systemctl cat <UNIT>",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "'Address already in use': who already holds the port.",
+   "cmd": "sudo ss -tulpn",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Disk full can stop services from starting.",
+   "cmd": "df -h",
+   "danger": "read-only"
+  },
+  {
+   "stage": "change",
+   "say": "After fixing a unit file by hand, make systemd re-read it.",
+   "cmd": "sudo systemctl daemon-reload",
+   "danger": "modify",
+   "rollback": "Not needed."
+  },
+  {
+   "stage": "change",
+   "say": "After 'start request repeated too quickly', clear the failed state before trying again.",
+   "cmd": "sudo systemctl reset-failed <UNIT>",
+   "danger": "modify",
+   "rollback": "Not needed."
+  },
+  {
+   "stage": "change",
+   "say": "Start it again.",
+   "cmd": "sudo systemctl restart <UNIT>",
+   "danger": "modify",
+   "rollback": "Stop it again:",
+   "rollback_cmd": "sudo systemctl stop <UNIT>"
+  },
+  {
+   "stage": "verify",
+   "say": "It is running.",
+   "cmd": "systemctl is-active <UNIT>",
+   "danger": "read-only"
+  }
+ ],
+ "pitfalls": [
+  "Many services can check their own config first, e.g. nginx -t or sshd -t. See the service's man page."
+ ]
+}

@@ -1,0 +1,86 @@
+{
+ "id": "add-sudo-user",
+ "title": "Add an admin user with sudo and an SSH key",
+ "tasks": [
+  "create a user with sudo",
+  "add an admin user",
+  "give a user sudo",
+  "add ssh key for a user"
+ ],
+ "placeholders": {
+  "USER": {
+   "means": "the new account name, e.g. alice",
+   "find": "cut -d: -f 1 /etc/passwd"
+  }
+ },
+ "steps": [
+  {
+   "stage": "check",
+   "say": "The name is free: no output means free.",
+   "cmd": "getent passwd <USER>",
+   "danger": "read-only"
+  },
+  {
+   "stage": "change",
+   "say": "Create the user; it asks for a password and details.",
+   "cmd": "sudo adduser <USER>",
+   "danger": "modify",
+   "rollback": "Remove the user and their home folder:",
+   "rollback_cmd": "sudo deluser --remove-home <USER>"
+  },
+  {
+   "stage": "change",
+   "say": "Allow sudo: add the user to the group sudo.",
+   "cmd": "sudo usermod -aG sudo <USER>",
+   "danger": "modify",
+   "rollback": "Take sudo away again:",
+   "rollback_cmd": "sudo gpasswd -d <USER> sudo"
+  },
+  {
+   "stage": "prepare",
+   "say": "Create the .ssh folder, owned by the user, private.",
+   "cmd": "sudo install -d -m 700 -o <USER> -g <USER> /home/<USER>/.ssh",
+   "danger": "modify",
+   "rollback": "Remove it:",
+   "rollback_cmd": "sudo rm -r /home/<USER>/.ssh",
+   "rollback_danger": "destructive"
+  },
+  {
+   "stage": "change",
+   "say": "Paste the user's PUBLIC key (one line starting ssh-ed25519 or ssh-rsa).",
+   "cmd": "sudoedit /home/<USER>/.ssh/authorized_keys",
+   "danger": "modify",
+   "rollback": "Delete the key line again."
+  },
+  {
+   "stage": "change",
+   "say": "The key file must belong to the user and be private, or SSH ignores it.",
+   "cmd": "sudo chown <USER>:<USER> /home/<USER>/.ssh/authorized_keys",
+   "danger": "modify",
+   "rollback": "Not needed."
+  },
+  {
+   "stage": "change",
+   "say": "Make the key file private.",
+   "cmd": "sudo chmod 600 /home/<USER>/.ssh/authorized_keys",
+   "danger": "modify",
+   "rollback": "Not needed."
+  },
+  {
+   "stage": "verify",
+   "say": "The user is in the sudo group.",
+   "cmd": "id <USER>",
+   "danger": "read-only"
+  },
+  {
+   "stage": "verify",
+   "say": "What the user may run with sudo.",
+   "cmd": "sudo -l -U <USER>",
+   "danger": "read-only"
+  }
+ ],
+ "pitfalls": [
+  "Test a new SSH login in a second terminal before you log out of the first.",
+  "The group change applies at the user's next login."
+ ]
+}

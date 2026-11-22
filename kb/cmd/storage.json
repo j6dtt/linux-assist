@@ -1,0 +1,177 @@
+[
+{"name": "lsblk", "summary": "Disks and partitions as a tree", "man": ["lsblk(8)"],
+ "tasks": ["list disks", "find the new disk", "which disk is mounted where", "filesystem type of a partition"],
+ "examples": [
+  {"level": "basic", "cmd": "lsblk", "does": "Disks, partitions and LVM volumes, with sizes and mount points", "danger": "read-only"},
+  {"level": "basic", "cmd": "lsblk -f", "does": "Add filesystem type, label and UUID", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT", "does": "Chosen columns", "danger": "read-only"}],
+ "pitfalls": ["A new, empty disk shows as TYPE disk with no partitions below it and no mount point."],
+ "see_also": ["blkid", "findmnt", "df"]},
+
+{"name": "blkid", "summary": "Filesystem type, label and UUID of partitions", "man": ["blkid(8)"],
+ "tasks": ["UUID of a partition", "UUID for fstab"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo blkid", "does": "Every partition with its type, label and UUID", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo blkid -s UUID -o value /dev/<PART>", "does": "Only the UUID, ready for /etc/fstab", "danger": "read-only"}],
+ "pitfalls": ["Use UUIDs in /etc/fstab, not /dev/sdX names: those can change between boots."],
+ "see_also": ["lsblk"]},
+
+{"name": "mount", "summary": "Attach a filesystem to a folder", "man": ["mount(8)"],
+ "tasks": ["mount a disk", "test fstab", "remount read-write"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo mount /dev/<PART> /mnt", "does": "Mount a partition on /mnt until reboot", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo mount -a", "does": "Mount everything in /etc/fstab: test fstab changes before rebooting", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo mount -o remount,rw /", "does": "Make the root filesystem writable again (e.g. in recovery)", "danger": "modify"}],
+ "pitfalls": ["A wrong /etc/fstab line can stop the server booting. Run sudo mount -a and findmnt --verify after every edit."],
+ "see_also": ["umount", "findmnt"]},
+
+{"name": "umount", "summary": "Detach a filesystem", "man": ["umount(8)"],
+ "tasks": ["unmount a disk", "target is busy"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo umount /mnt", "does": "Unmount", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo umount -l /mnt", "does": "Detach now, finish when no longer used (lazy)", "danger": "modify"}],
+ "pitfalls": ["'target is busy': find who uses it with sudo lsof +D /mnt or sudo fuser -vm /mnt. cd out of it yourself too."],
+ "see_also": ["mount", "lsof", "fuser"]},
+
+{"name": "findmnt", "summary": "What is mounted where", "man": ["findmnt(8)"],
+ "tasks": ["which filesystem holds a folder", "check fstab", "list mounts"],
+ "examples": [
+  {"level": "basic", "cmd": "findmnt", "does": "Every mount as a tree", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "findmnt -T /var/log", "does": "Which mount a path is on", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo findmnt --verify", "does": "Check /etc/fstab for mistakes", "danger": "read-only"},
+  {"level": "advanced", "cmd": "findmnt -t ext4,xfs", "does": "Only these filesystem types", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["mount", "df"]},
+
+{"name": "fdisk", "summary": "Partition tables (MBR and GPT)", "man": ["fdisk(8)"],
+ "tasks": ["list partitions", "partition a disk"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo fdisk -l", "does": "Every disk and its partitions", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo fdisk /dev/<DISK>", "does": "Edit partitions interactively; nothing is written until you press w", "danger": "destructive"}],
+ "pitfalls": ["Check the disk name twice with lsblk. Writing to the wrong disk destroys its data."],
+ "see_also": ["parted", "lsblk"]},
+
+{"name": "parted", "summary": "Partition disks, scriptable", "man": ["parted(8)"],
+ "tasks": ["list partitions", "create a GPT partition table", "partition a new disk"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo parted -l", "does": "Every disk and its partitions", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo parted /dev/<DISK> print", "does": "One disk's partitions", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo parted -s /dev/<DISK> mklabel gpt mkpart primary ext4 0% 100%", "does": "New GPT table with one partition filling the disk (erases the old table)", "danger": "destructive"}],
+ "pitfalls": ["parted writes each change immediately; there is no 'write at the end' as in fdisk."],
+ "see_also": ["fdisk", "lsblk"]},
+
+{"name": "mkfs.ext4", "summary": "Create an ext4 filesystem (erases the partition)", "man": ["mkfs.ext4(8)"],
+ "tasks": ["format a partition", "create a filesystem"],
+ "examples": [
+  {"level": "intermediate", "cmd": "sudo mkfs.ext4 -L data /dev/<PART>", "does": "Create ext4 with a label", "danger": "destructive"}],
+ "pitfalls": ["Everything on the partition is lost. Check the name with lsblk -f first."],
+ "see_also": ["mkfs.xfs", "lsblk"]},
+
+{"name": "mkfs.xfs", "summary": "Create an XFS filesystem (erases the partition)", "man": ["mkfs.xfs(8)"],
+ "tasks": ["format a partition with xfs"],
+ "examples": [
+  {"level": "intermediate", "cmd": "sudo mkfs.xfs -L data /dev/<PART>", "does": "Create XFS with a label", "danger": "destructive"}],
+ "pitfalls": ["XFS can grow but never shrink."],
+ "see_also": ["mkfs.ext4"]},
+
+{"name": "resize2fs", "summary": "Grow or shrink an ext4 filesystem", "man": ["resize2fs(8)"],
+ "tasks": ["grow a filesystem", "filesystem did not grow after extending the disk"],
+ "examples": [
+  {"level": "intermediate", "cmd": "sudo resize2fs /dev/<VG>/<LV>", "does": "Grow ext4 to fill its (already enlarged) volume; works while mounted", "danger": "modify"}],
+ "pitfalls": ["To shrink: unmount, shrink the filesystem first, then the volume. The other order destroys data."],
+ "see_also": ["lvextend", "xfs_growfs"]},
+
+{"name": "xfs_growfs", "summary": "Grow an XFS filesystem", "man": ["xfs_growfs(8)"],
+ "tasks": ["grow an xfs filesystem"],
+ "examples": [
+  {"level": "intermediate", "cmd": "sudo xfs_growfs /srv", "does": "Grow a mounted XFS filesystem to fill its volume (give the mount point)", "danger": "modify"}],
+ "pitfalls": ["XFS cannot shrink."],
+ "see_also": ["lvextend", "resize2fs"]},
+
+{"name": "e2fsck", "summary": "Check and repair ext4 filesystems", "man": ["e2fsck(8)"],
+ "tasks": ["check a filesystem", "repair a filesystem"],
+ "examples": [
+  {"level": "intermediate", "cmd": "sudo e2fsck -n /dev/<PART>", "does": "Check only, answer no to every repair", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo e2fsck -f /dev/<PART>", "does": "Full check and repair", "danger": "modify"}],
+ "pitfalls": ["Never repair a mounted filesystem: unmount it first (or boot into recovery for /)."],
+ "see_also": ["fsck", "umount"]},
+
+{"name": "pvs", "summary": "LVM physical volumes (disks given to LVM)", "man": ["pvs(8)"],
+ "tasks": ["list LVM disks", "free space in LVM"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo pvs", "does": "Each LVM disk, its volume group, size and free space", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["vgs", "lvs"]},
+
+{"name": "vgs", "summary": "LVM volume groups", "man": ["vgs(8)"],
+ "tasks": ["volume group free space", "volume group name"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo vgs", "does": "Each volume group with its size and free space (VFree)", "danger": "read-only"}],
+ "pitfalls": ["Ubuntu's installer names the group ubuntu-vg by default, but check: it can differ."],
+ "see_also": ["pvs", "lvs"]},
+
+{"name": "lvs", "summary": "LVM logical volumes", "man": ["lvs(8)"],
+ "tasks": ["list logical volumes", "LVM volume sizes"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo lvs", "does": "Each logical volume with its group and size", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo lvs -o +devices", "does": "Add which disks each volume sits on", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["vgs", "lvextend"]},
+
+{"name": "pvcreate", "summary": "Prepare a disk for LVM", "man": ["pvcreate(8)"],
+ "tasks": ["add a disk to LVM"],
+ "examples": [
+  {"level": "intermediate", "cmd": "sudo pvcreate /dev/<DISK>", "does": "Mark a disk as an LVM physical volume (overwrites what is on it)", "danger": "destructive"}],
+ "pitfalls": ["Make sure the disk is the new, empty one: lsblk shows no partitions and no mount point."],
+ "see_also": ["vgextend", "pvs"]},
+
+{"name": "vgextend", "summary": "Add a disk to a volume group", "man": ["vgextend(8)"],
+ "tasks": ["add a disk to a volume group"],
+ "examples": [
+  {"level": "intermediate", "cmd": "sudo vgextend <VG> /dev/<DISK>", "does": "Add the prepared disk's space to the group", "danger": "modify"}],
+ "pitfalls": [],
+ "see_also": ["pvcreate", "lvextend"]},
+
+{"name": "lvextend", "summary": "Grow a logical volume", "man": ["lvextend(8)"],
+ "tasks": ["extend a logical volume", "grow /var", "use all free space in the volume group"],
+ "examples": [
+  {"level": "intermediate", "cmd": "sudo lvextend -r -L +20G <VG>/<LV>", "does": "Add 20 GB and grow the filesystem in the same step (-r)", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo lvextend -r -l +100%FREE <VG>/<LV>", "does": "Use all the group's free space", "danger": "modify"}],
+ "pitfalls": ["Without -r only the volume grows; df shows no change until you grow the filesystem (resize2fs or xfs_growfs)."],
+ "see_also": ["vgs", "resize2fs", "xfs_growfs"]},
+
+{"name": "lvcreate", "summary": "Create a logical volume or snapshot", "man": ["lvcreate(8)"],
+ "tasks": ["create a logical volume", "snapshot before an upgrade"],
+ "examples": [
+  {"level": "intermediate", "cmd": "sudo lvcreate -n data -L 50G <VG>", "does": "Create a 50 GB volume called data", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo lvcreate -s -n before-upgrade -L 5G <VG>/<LV>", "does": "A snapshot to roll back to; 5 GB holds the changes made after it", "danger": "modify"}],
+ "pitfalls": ["A snapshot that fills up becomes unusable. Make it big enough and remove it when done (lvremove)."],
+ "see_also": ["lvs", "lvextend"]},
+
+{"name": "mdadm", "summary": "Software RAID", "man": ["mdadm(8)"],
+ "tasks": ["RAID status", "replace a failed RAID disk", "is the RAID degraded"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo mdadm --detail /dev/md0", "does": "State of one array and each of its disks", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo mdadm --detail --scan", "does": "One line per array (the format of /etc/mdadm/mdadm.conf)", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo mdadm /dev/md0 --add /dev/<PART>", "does": "Add a replacement disk; the array rebuilds onto it", "danger": "modify"}],
+ "pitfalls": ["cat /proc/mdstat shows rebuild progress.", "After changing arrays, update /etc/mdadm/mdadm.conf and run sudo update-initramfs -u."],
+ "see_also": ["lsblk", "smartctl"]},
+
+{"name": "swapon", "summary": "Swap space", "man": ["swapon(8)"],
+ "tasks": ["is swap on", "list swap"],
+ "examples": [
+  {"level": "basic", "cmd": "swapon --show", "does": "Swap files and partitions in use, with sizes", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo swapon -a", "does": "Turn on all swap listed in /etc/fstab", "danger": "modify"}],
+ "pitfalls": [],
+ "see_also": ["free", "mkswap"]},
+
+{"name": "smartctl", "summary": "Disk health (SMART)", "man": ["smartctl(8)"],
+ "tasks": ["is the disk failing", "disk health"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo smartctl -H /dev/<DISK>", "does": "Overall health: PASSED or FAILED", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo smartctl -a /dev/<DISK>", "does": "Every attribute and the error log", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo smartctl -t short /dev/<DISK>", "does": "Start a short self-test (a few minutes; read the result with -a)", "danger": "modify"}],
+ "pitfalls": ["smartctl is in the smartmontools package; install it if the command is missing.",
+              "Virtual machine disks usually have no SMART data."],
+ "see_also": ["dmesg", "mdadm"]}
+]

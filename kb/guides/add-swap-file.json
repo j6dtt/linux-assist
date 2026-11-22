@@ -1,0 +1,78 @@
+{
+ "id": "add-swap-file",
+ "title": "Add a swap file",
+ "tasks": [
+  "add swap",
+  "create swap file",
+  "no swap",
+  "server runs out of memory"
+ ],
+ "placeholders": {
+  "SIZE": {
+   "means": "swap size, e.g. 4G",
+   "find": "free -h"
+  }
+ },
+ "steps": [
+  {
+   "stage": "check",
+   "say": "Swap in use now.",
+   "cmd": "swapon --show",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Memory and free disk space.",
+   "cmd": "free -h",
+   "danger": "read-only"
+  },
+  {
+   "stage": "prepare",
+   "say": "Reserve the file.",
+   "cmd": "sudo fallocate -l <SIZE> /swapfile",
+   "danger": "modify",
+   "rollback": "Delete it:",
+   "rollback_cmd": "sudo rm /swapfile"
+  },
+  {
+   "stage": "prepare",
+   "say": "Only root may read it.",
+   "cmd": "sudo chmod 600 /swapfile",
+   "danger": "modify",
+   "rollback": "Not needed."
+  },
+  {
+   "stage": "prepare",
+   "say": "Format it as swap.",
+   "cmd": "sudo mkswap /swapfile",
+   "danger": "destructive",
+   "rollback": "Delete the file:",
+   "rollback_cmd": "sudo rm /swapfile"
+  },
+  {
+   "stage": "change",
+   "say": "Turn it on now.",
+   "cmd": "sudo swapon /swapfile",
+   "danger": "modify",
+   "rollback": "Turn it off:",
+   "rollback_cmd": "sudo swapoff /swapfile"
+  },
+  {
+   "stage": "change",
+   "say": "Add this line at the end of /etc/fstab so it is used after reboot.",
+   "cmd": "sudoedit /etc/fstab",
+   "danger": "modify",
+   "rollback": "Delete the line again.",
+   "content": "/swapfile  none  swap  sw  0  0\n"
+  },
+  {
+   "stage": "verify",
+   "say": "Swap is on.",
+   "cmd": "swapon --show",
+   "danger": "read-only"
+  }
+ ],
+ "pitfalls": [
+  "This guide is for ext4, Ubuntu's default. Swap files on btrfs need extra steps."
+ ]
+}

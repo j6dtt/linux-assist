@@ -1,0 +1,7 @@
+  sha256sum -c la-1.0.0-dev.tar.sha256
+  tar xf la-1.0.0-dev.tar && sudo mv la-1.0.0-dev /opt/la && cd /opt/la
+  sha256sum -c SHA256SUMS
+  docker load < image.tar.gz
+  sudo vi compose.yaml        # put the vLLM host in llm-url
+  sudo ln -sf /opt/la/la /usr/local/bin/la
+  la version

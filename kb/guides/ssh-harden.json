@@ -1,0 +1,74 @@
+{
+ "id": "ssh-harden",
+ "title": "Turn off SSH password and root login",
+ "tasks": [
+  "harden ssh",
+  "disable ssh password login",
+  "disable root login over ssh",
+  "ssh keys only"
+ ],
+ "placeholders": {
+  "USER": {
+   "means": "your admin account",
+   "find": "id -un"
+  },
+  "HOST": {
+   "means": "this server's name or address",
+   "find": "hostname -f"
+  }
+ },
+ "steps": [
+  {
+   "stage": "check",
+   "say": "Current effective settings.",
+   "cmd": "sudo sshd -T | grep -E 'permitrootlogin|passwordauthentication|kbdinteractiveauthentication'",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "From your workstation: prove a key login works before turning passwords off.",
+   "cmd": "ssh -o PasswordAuthentication=no <USER>@<HOST>",
+   "danger": "read-only",
+   "where": "your workstation"
+  },
+  {
+   "stage": "change",
+   "say": "Create this file. sshd uses the FIRST value it reads, and reads sshd_config.d files in name order, so 01- wins over 50-cloud-init.conf.",
+   "cmd": "sudoedit /etc/ssh/sshd_config.d/01-hardening.conf",
+   "danger": "modify",
+   "rollback": "Delete the file and restart ssh:",
+   "rollback_cmd": "sudo rm /etc/ssh/sshd_config.d/01-hardening.conf",
+   "content": "PermitRootLogin no\nPasswordAuthentication no\nKbdInteractiveAuthentication no\n"
+  },
+  {
+   "stage": "check",
+   "say": "Test the config. No output means it is valid.",
+   "cmd": "sudo sshd -t",
+   "danger": "read-only"
+  },
+  {
+   "stage": "change",
+   "say": "Restart SSH. Logged-in sessions stay connected.",
+   "cmd": "sudo systemctl restart ssh",
+   "danger": "modify",
+   "rollback": "Remove the file again, then restart ssh."
+  },
+  {
+   "stage": "verify",
+   "say": "The new settings are active.",
+   "cmd": "sudo sshd -T | grep -E 'permitrootlogin|passwordauthentication|kbdinteractiveauthentication'",
+   "danger": "read-only"
+  },
+  {
+   "stage": "verify",
+   "say": "From your workstation, in a NEW terminal: log in again before closing the old session.",
+   "cmd": "ssh <USER>@<HOST>",
+   "danger": "read-only",
+   "where": "your workstation"
+  }
+ ],
+ "pitfalls": [
+  "Keep your current session open until a new login works.",
+  "The service is called ssh on Ubuntu, not sshd."
+ ]
+}

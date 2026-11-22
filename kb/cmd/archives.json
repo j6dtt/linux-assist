@@ -1,0 +1,46 @@
+[
+{"name": "tar", "summary": "Create and unpack archives", "man": ["tar(1)"],
+ "tasks": ["create a backup archive", "extract an archive", "list what is in an archive", "extract to another folder", "exclude files from an archive"],
+ "examples": [
+  {"level": "basic", "cmd": "tar -czf etc-backup.tgz /etc", "does": "Pack a folder into a gzip-compressed archive", "danger": "modify"},
+  {"level": "basic", "cmd": "tar -tzf etc-backup.tgz", "does": "List what is inside, without unpacking", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "tar -xzf etc-backup.tgz -C /tmp/restore", "does": "Unpack into another folder (it must exist)", "danger": "modify"},
+  {"level": "intermediate", "cmd": "tar -czf site.tgz --exclude='*.log' /var/www/site", "does": "Leave matching files out", "danger": "modify"},
+  {"level": "advanced", "cmd": "tar --zstd -cf data.tar.zst /srv/data", "does": "Use zstd: much faster than gzip at similar size", "danger": "modify"}],
+ "pitfalls": ["Unpacking over existing files replaces them. List first (-t), unpack into an empty folder.",
+              "tar drops the leading / from names, so restoring with -C / puts files back in place."],
+ "see_also": ["gzip", "zip", "rsync"]},
+
+{"name": "gzip", "summary": "Compress single files", "man": ["gzip(1)"],
+ "tasks": ["compress a file", "read a compressed log", "test a compressed file"],
+ "examples": [
+  {"level": "basic", "cmd": "gzip -k big.log", "does": "Compress to big.log.gz and keep the original", "danger": "modify"},
+  {"level": "basic", "cmd": "gzip -dc /var/log/syslog.2.gz | grep error", "does": "Read a compressed log without unpacking it", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "gzip -t backup.tgz", "does": "Check that the file is not damaged", "danger": "read-only"}],
+ "pitfalls": ["Without -k, gzip replaces the original with the .gz file."],
+ "see_also": ["tar", "zstd"]},
+
+{"name": "zip", "summary": "Create .zip archives", "man": ["zip(1)"],
+ "tasks": ["create a zip file"],
+ "examples": [
+  {"level": "basic", "cmd": "zip -r site.zip /var/www/site", "does": "Pack a folder into a .zip", "danger": "modify"}],
+ "pitfalls": ["zip does not keep Linux owners and permissions well; use tar for server backups."],
+ "see_also": ["unzip", "tar"]},
+
+{"name": "unzip", "summary": "Unpack .zip archives", "man": ["unzip(1)"],
+ "tasks": ["extract a zip file", "list a zip file"],
+ "examples": [
+  {"level": "basic", "cmd": "unzip -l site.zip", "does": "List what is inside", "danger": "read-only"},
+  {"level": "basic", "cmd": "unzip site.zip -d /tmp/site", "does": "Unpack into a folder", "danger": "modify"}],
+ "pitfalls": [],
+ "see_also": ["zip", "tar"]},
+
+{"name": "sha256sum", "summary": "Checksums: is a file exactly the one that was sent", "man": ["sha256sum(1)"],
+ "tasks": ["verify a file after copying", "checksum of a file", "check a transfer into the air-gapped network"],
+ "examples": [
+  {"level": "basic", "cmd": "sha256sum la_1.0.tar.gz", "does": "The file's SHA-256 checksum", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sha256sum la_1.0.tar.gz > la_1.0.tar.gz.sha256", "does": "Save the checksum to send along with the file", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sha256sum -c la_1.0.tar.gz.sha256", "does": "Check the file against the saved checksum: OK or FAILED", "danger": "read-only"}],
+ "pitfalls": ["Get the checksum through a different path than the file, or a tampered file can come with a matching checksum."],
+ "see_also": ["md5sum"]}
+]

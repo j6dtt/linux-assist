@@ -1,0 +1,96 @@
+[
+{"name": "grep", "summary": "Search text for lines that match", "man": ["grep(1)"],
+ "tasks": ["search a log for errors", "search all files in a folder", "settings without comments", "count matching lines", "lines around a match", "which files contain a word"],
+ "examples": [
+  {"level": "basic", "cmd": "grep -i error /var/log/syslog", "does": "Lines containing 'error', any case", "danger": "read-only"},
+  {"level": "basic", "cmd": "grep -rn 'listen' /etc/nginx/", "does": "Search every file in a folder, with file names and line numbers", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "grep -v '^#' /etc/ssh/sshd_config | grep -v '^$'", "does": "The settings only, without comments and blank lines", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "grep -cE 'error|fail' /var/log/syslog", "does": "Count lines matching either word", "danger": "read-only"},
+  {"level": "advanced", "cmd": "grep -B 2 -A 3 'Out of memory' /var/log/kern.log", "does": "Each match with 2 lines before and 3 after", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo grep -rl --include='*.conf' 'PermitRootLogin' /etc", "does": "Only the names of .conf files that contain a word", "danger": "read-only"}],
+ "pitfalls": ["Quote the pattern. Without quotes the shell may change it (e.g. * or |).",
+              "grep -E is for extended patterns such as a|b; plain grep treats | as a normal character."],
+ "see_also": ["sed", "awk", "journalctl"]},
+
+{"name": "sed", "summary": "Edit text: print parts, replace, delete lines", "man": ["sed(1)"],
+ "tasks": ["replace text in a file", "print some lines of a file", "delete empty lines", "edit a config file in place"],
+ "examples": [
+  {"level": "basic", "cmd": "sed -n '10,20p' /var/log/syslog", "does": "Print lines 10 to 20 only", "danger": "read-only"},
+  {"level": "basic", "cmd": "sed 's/old/new/g' app.conf", "does": "Print the file with every 'old' replaced; the file is not changed", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo sed -i.bak 's/^#Port 22/Port 2222/' /etc/ssh/sshd_config", "does": "Edit the file in place, keeping the original as .bak", "danger": "modify"},
+  {"level": "advanced", "cmd": "sed -i '/^$/d' list.txt", "does": "Delete empty lines from the file", "danger": "modify"}],
+ "pitfalls": ["Run without -i first and read the output. -i writes straight to the file.",
+              "Give -i a suffix (-i.bak) to keep the original."],
+ "see_also": ["grep", "awk"]},
+
+{"name": "awk", "summary": "Pick out columns and compute over lines of text", "man": ["awk(1)"],
+ "tasks": ["print a column", "top client IPs in a web log", "normal user accounts", "filesystems over 80% full", "sum a column"],
+ "examples": [
+  {"level": "basic", "cmd": "awk '{print $1}' /var/log/nginx/access.log | sort | uniq -c | sort -rn | head", "does": "The 10 client IPs with the most requests", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "awk -F: '$3 >= 1000 {print $1}' /etc/passwd", "does": "Normal user accounts (UID 1000 and up)", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "df -h | awk 'NR > 1 && $5 + 0 > 80 {print $6, $5}'", "does": "Filesystems more than 80% full", "danger": "read-only"},
+  {"level": "advanced", "cmd": "awk -v min=500 '$2 > min {print $1, $2}' sizes.txt", "does": "Pass a value in from the shell (-v)", "danger": "read-only"},
+  {"level": "advanced", "cmd": "awk '{sum += $10} END {print sum}' /var/log/nginx/access.log", "does": "Add up a column (here: bytes sent)", "danger": "read-only"}],
+ "pitfalls": ["Ubuntu's default awk is mawk. GNU awk extensions such as gensub() need the gawk package.",
+              "Use single quotes around the program, or the shell replaces $1 before awk sees it."],
+ "see_also": ["cut", "sort", "uniq"]},
+
+{"name": "sort", "summary": "Sort lines", "man": ["sort(1)"],
+ "tasks": ["sort by size", "sort numbers", "remove duplicate lines", "sort by a column"],
+ "examples": [
+  {"level": "basic", "cmd": "sort names.txt", "does": "Sort lines alphabetically", "danger": "read-only"},
+  {"level": "basic", "cmd": "du -sh /var/* | sort -h", "does": "Sort human-readable sizes (K, M, G) correctly", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sort -u ips.txt", "does": "Sort and drop duplicate lines", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sort -t: -k 3 -n /etc/passwd", "does": "Sort by the 3rd ':'-separated column, as numbers", "danger": "read-only"}],
+ "pitfalls": ["Plain sort puts 10 before 9. Use -n for numbers and -h for sizes."],
+ "see_also": ["uniq", "awk"]},
+
+{"name": "uniq", "summary": "Collapse or count repeated lines (input must be sorted)", "man": ["uniq(1)"],
+ "tasks": ["count repeated lines", "show duplicates"],
+ "examples": [
+  {"level": "basic", "cmd": "sort ips.txt | uniq -c | sort -rn", "does": "How often each line occurs, most frequent first", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sort ips.txt | uniq -d", "does": "Only lines that occur more than once", "danger": "read-only"}],
+ "pitfalls": ["uniq only merges lines that are next to each other. Sort first."],
+ "see_also": ["sort"]},
+
+{"name": "cut", "summary": "Pick out columns by a separator", "man": ["cut(1)"],
+ "tasks": ["list user names", "print a column"],
+ "examples": [
+  {"level": "basic", "cmd": "cut -d: -f 1 /etc/passwd", "does": "The first ':'-separated column (account names)", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "cut -d, -f 2,4 data.csv", "does": "Columns 2 and 4 of a simple CSV", "danger": "read-only"}],
+ "pitfalls": ["cut splits on one character exactly. For columns separated by several spaces, use awk."],
+ "see_also": ["awk"]},
+
+{"name": "tr", "summary": "Replace or delete characters", "man": ["tr(1)"],
+ "tasks": ["convert Windows line endings", "one PATH entry per line", "uppercase"],
+ "examples": [
+  {"level": "basic", "cmd": "echo \"$PATH\" | tr ':' '\\n'", "does": "Each PATH entry on its own line", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "tr -d '\\r' < windows.txt > unix.txt", "does": "Remove Windows carriage returns (writes a new file)", "danger": "modify"}],
+ "pitfalls": [],
+ "see_also": ["sed"]},
+
+{"name": "xargs", "summary": "Run a command with input lines as its arguments", "man": ["xargs(1)"],
+ "tasks": ["run a command for each line", "delete files found by find"],
+ "examples": [
+  {"level": "intermediate", "cmd": "find /tmp -name '*.tmp' -print0 | xargs -0 rm -f", "does": "Delete what find found, safe with spaces in names", "danger": "destructive"},
+  {"level": "intermediate", "cmd": "xargs -I {} ping -c 1 {} < hosts.txt", "does": "Run one command per input line", "danger": "read-only"},
+  {"level": "advanced", "cmd": "find /var/log -name '*.log' -print0 | xargs -0 -P 4 gzip -k", "does": "Run up to 4 at a time", "danger": "modify"}],
+ "pitfalls": ["Without -print0 and -0, file names with spaces split into several arguments."],
+ "see_also": ["find"]},
+
+{"name": "tee", "summary": "Write to a file and the screen at once", "man": ["tee(1)"],
+ "tasks": ["write a root-owned file", "append to a file with sudo", "save output and see it"],
+ "examples": [
+  {"level": "intermediate", "cmd": "echo 'net.ipv4.ip_forward = 1' | sudo tee /etc/sysctl.d/99-forward.conf", "does": "Write a root-owned file (sudo echo > file does not work: the shell opens the file, not sudo)", "danger": "modify"},
+  {"level": "intermediate", "cmd": "echo '192.0.2.10 db1' | sudo tee -a /etc/hosts", "does": "Append a line instead of replacing the file", "danger": "modify"}],
+ "pitfalls": ["Without -a, tee replaces the whole file."],
+ "see_also": ["sudo"]},
+
+{"name": "column", "summary": "Line text up in columns", "man": ["column(1)"],
+ "tasks": ["make output readable as a table", "view a CSV"],
+ "examples": [
+  {"level": "basic", "cmd": "mount | column -t", "does": "Line up whitespace-separated output", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "column -t -s, data.csv", "does": "Show a simple CSV as a table", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["awk"]}
+]

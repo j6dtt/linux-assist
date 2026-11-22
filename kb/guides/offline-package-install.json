@@ -1,0 +1,67 @@
+{
+ "id": "offline-package-install",
+ "title": "Install a package on an air-gapped server",
+ "tasks": [
+  "install a package offline",
+  "air-gapped package install",
+  "install deb without internet",
+  "download packages for an offline server"
+ ],
+ "placeholders": {
+  "PKG": {
+   "means": "the package name, e.g. nginx",
+   "find": "apt-cache pkgnames"
+  }
+ },
+ "steps": [
+  {
+   "stage": "check",
+   "say": "On a connected machine with the SAME Ubuntu release: what the package needs.",
+   "cmd": "apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances <PKG>",
+   "danger": "read-only",
+   "where": "connected machine, same release"
+  },
+  {
+   "stage": "prepare",
+   "say": "Download the package and everything it needs into the current folder.",
+   "cmd": "apt-get download $(apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances <PKG> | grep '^[a-z0-9]' | sort -u)",
+   "danger": "modify",
+   "rollback": "Delete the downloaded files:",
+   "rollback_cmd": "rm -f ./*.deb",
+   "where": "connected machine, same release",
+   "rollback_danger": "destructive"
+  },
+  {
+   "stage": "prepare",
+   "say": "Write checksums to send with the files.",
+   "cmd": "sha256sum *.deb > SHA256SUMS",
+   "danger": "modify",
+   "rollback": "Not needed.",
+   "where": "connected machine, same release"
+  },
+  {
+   "stage": "check",
+   "say": "On the server, after copying the files over: every line must say OK.",
+   "cmd": "sha256sum -c SHA256SUMS",
+   "danger": "read-only"
+  },
+  {
+   "stage": "change",
+   "say": "Install them. apt uses the files given and the packages already installed.",
+   "cmd": "sudo apt install ./*.deb",
+   "danger": "modify",
+   "rollback": "Remove the package again:",
+   "rollback_cmd": "sudo apt remove <PKG>"
+  },
+  {
+   "stage": "verify",
+   "say": "Installed, with the version you carried over.",
+   "cmd": "apt-cache policy <PKG>",
+   "danger": "read-only"
+  }
+ ],
+ "pitfalls": [
+  "Download on the same Ubuntu release (22.04 or 24.04) as the server, or versions won't match.",
+  "Packages already on the server are downloaded too; apt skips what is already installed at the same version."
+ ]
+}

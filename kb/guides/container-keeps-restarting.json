@@ -1,0 +1,75 @@
+{
+ "id": "container-keeps-restarting",
+ "title": "A Docker container keeps restarting or has stopped",
+ "tasks": [
+  "container keeps restarting",
+  "container exited",
+  "container won't start",
+  "container stopped",
+  "container unhealthy",
+  "docker container restarting"
+ ],
+ "placeholders": {
+  "CONTAINER": {
+   "means": "the container's name, e.g. hp-viz",
+   "find": "docker ps -a"
+  }
+ },
+ "steps": [
+  {
+   "stage": "check",
+   "say": "STATUS: Restarting, Exited (code), or (unhealthy).",
+   "cmd": "docker ps -a",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Why it stopped. exit=137: killed (oom=true means for memory). exit=143: stopped by a signal. exit=1: the app failed; see its log.",
+   "cmd": "docker inspect -f 'status={{.State.Status}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} restarts={{.RestartCount}} error={{.State.Error}}' <CONTAINER>",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Its last log lines: the app's own error is usually here.",
+   "cmd": "docker logs --tail 100 <CONTAINER>",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Health check results, if it has one (null means none).",
+   "cmd": "docker inspect -f '{{json .State.Health}}' <CONTAINER>",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Memory and CPU use now, against its limit.",
+   "cmd": "docker stats --no-stream <CONTAINER>",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "A full disk stops containers too.",
+   "cmd": "df -h",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Docker's own log about it.",
+   "cmd": "journalctl -u docker -n 50 --no-pager",
+   "danger": "read-only"
+  },
+  {
+   "stage": "change",
+   "say": "After fixing the cause (compose file, .env, disk), start it again from its compose folder.",
+   "cmd": "docker compose up -d",
+   "danger": "modify",
+   "rollback": "docker compose down stops it again."
+  },
+  {
+   "stage": "verify",
+   "say": "It should stay Up, and the restart count stop rising.",
+   "cmd": "docker ps -a",
+   "danger": "read-only"
+  }
+ ]
+}

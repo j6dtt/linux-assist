@@ -1,0 +1,61 @@
+#!/bin/sh
+# la: one lookup in a throwaway container, then it is removed.
+#   la show ss        la explain "ss -tulpn"     df -h | la interpret
+# Settings are in the settings block at the top of compose.yaml.
+# Install: sudo ln -s /opt/la/la /usr/local/bin/la
+set -eu
+
+# compose.yaml sits next to this script (it may be called through a link).
+here=$(dirname "$(readlink -f "$0")")
+compose="${LA_HOME:-$here}/compose.yaml"
+if [ ! -f "$compose" ]; then
+  echo "la: no compose.yaml in ${LA_HOME:-$here}. Set LA_HOME to the la folder." >&2
+  exit 2
+fi
+
+# The image must already be loaded: la never pulls from a registry.
+if ! command -v docker >/dev/null 2>&1; then
+  echo "la: Docker is not installed on this server." >&2
+  exit 4
+fi
+image=$(sed -n 's/^x-image: &image //p' "$compose")
+if ! out=$(docker image inspect "$image" 2>&1 >/dev/null); then
+  case "$out" in
+    *ermission*)
+      echo "la: this user can't use Docker. Run it as: sudo la ..." >&2
+      echo "    (or add the user to the docker group)" >&2 ;;
+    *)
+      echo "la: the image $image is not loaded on this server. Load it:" >&2
+      echo "    docker load < $(dirname "$compose")/image.tar.gz" >&2 ;;
+  esac
+  exit 4
+fi
+
+# This server's release, so every answer matches it (--release overrides).
+release=$(. /etc/os-release 2>/dev/null && echo "${VERSION_ID:-}") || release=""
+
+# Only "ask" needs the network; everything else runs with none.
+service=la
+skip=""
+for a in "$@"; do
+  if [ -n "$skip" ]; then skip=""; continue; fi
+  case "$a" in
+    --release) skip=1 ;;
+    --release=*) ;;
+    ask) service=la-ask; break ;;
+    *) break ;;
+  esac
+done
+
+# Width for wrapping; never a TTY in the container (keeps output pipeable).
+cols=$(stty size 2>/dev/null </dev/tty | cut -d' ' -f2) || cols=""
+host=$(hostname 2>/dev/null) || host=""
+
+set -- docker compose -f "$compose" run --rm --quiet-pull -T \
+  -e LA_RELEASE="$release" -e COLUMNS="${cols:-80}" -e LA_HOSTNAME="$host" \
+  "$service" "$@"
+if [ -t 0 ]; then
+  exec "$@" </dev/null     # typed at a terminal: nothing piped in
+else
+  exec "$@"                # output piped in: the container reads it
+fi

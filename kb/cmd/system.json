@@ -1,0 +1,96 @@
+[
+{"name": "uname", "summary": "Kernel version and architecture", "man": ["uname(1)"],
+ "tasks": ["kernel version", "architecture"],
+ "examples": [
+  {"level": "basic", "cmd": "uname -r", "does": "Running kernel version", "danger": "read-only"},
+  {"level": "basic", "cmd": "uname -a", "does": "Kernel, host name and architecture on one line", "danger": "read-only"}],
+ "pitfalls": ["The Ubuntu release is in /etc/os-release, not in uname."],
+ "see_also": ["hostnamectl", "lsb_release"]},
+
+{"name": "lscpu", "summary": "CPU details", "man": ["lscpu(1)"],
+ "tasks": ["how many CPUs", "CPU model"],
+ "examples": [
+  {"level": "basic", "cmd": "lscpu", "does": "CPU model, cores, threads and cache", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["nproc", "lspci"]},
+
+{"name": "dmidecode", "summary": "Hardware details from the BIOS: model, serial, memory", "man": ["dmidecode(8)"],
+ "tasks": ["server serial number", "server model", "memory slots"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo dmidecode -t system", "does": "Maker, model and serial number", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo dmidecode -s system-serial-number", "does": "Only the serial number", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo dmidecode -t memory", "does": "Memory modules and empty slots", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["lshw", "lscpu"]},
+
+{"name": "lspci", "summary": "PCI devices: network cards, disk controllers, GPUs", "man": ["lspci(8)"],
+ "tasks": ["list hardware", "which driver does a device use"],
+ "examples": [
+  {"level": "basic", "cmd": "lspci", "does": "Every PCI device", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "lspci -k", "does": "Add the kernel driver each device uses", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "lspci -nn | grep -i ethernet", "does": "Network cards with vendor and device IDs", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["lsmod", "dmidecode"]},
+
+{"name": "lsmod", "summary": "Loaded kernel modules", "man": ["lsmod(8)"],
+ "tasks": ["is a kernel module loaded"],
+ "examples": [
+  {"level": "basic", "cmd": "lsmod | grep br_netfilter", "does": "Is one module loaded", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["modprobe", "modinfo"]},
+
+{"name": "modprobe", "summary": "Load or unload kernel modules", "man": ["modprobe(8)"],
+ "tasks": ["load a kernel module", "unload a kernel module"],
+ "examples": [
+  {"level": "intermediate", "cmd": "sudo modprobe br_netfilter", "does": "Load a module now (lasting: list it in /etc/modules-load.d/)", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo modprobe -r <MODULE>", "does": "Unload a module", "danger": "modify"}],
+ "pitfalls": [],
+ "see_also": ["lsmod", "modinfo"]},
+
+{"name": "modinfo", "summary": "Details of a kernel module", "man": ["modinfo(8)"],
+ "tasks": ["kernel module version", "module options"],
+ "examples": [
+  {"level": "basic", "cmd": "modinfo nvme", "does": "File, version, description and options of a module", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["lsmod", "modprobe"]},
+
+{"name": "sysctl", "summary": "Kernel settings", "man": ["sysctl(8)"],
+ "tasks": ["enable IP forwarding", "show a kernel setting", "reload sysctl settings"],
+ "examples": [
+  {"level": "basic", "cmd": "sysctl net.ipv4.ip_forward", "does": "Show one setting", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo sysctl -w net.ipv4.ip_forward=1", "does": "Change a setting until reboot", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo sysctl --system", "does": "Load the settings from every file in /etc/sysctl.d/", "danger": "modify"}],
+ "pitfalls": ["To keep a setting after reboot, put it in a file in /etc/sysctl.d/ (e.g. 99-local.conf)."],
+ "see_also": ["tee"]},
+
+{"name": "chattr", "summary": "Special file attributes, e.g. immutable", "man": ["chattr(1)"],
+ "tasks": ["make a file impossible to change", "cannot delete a file even as root"],
+ "examples": [
+  {"level": "advanced", "cmd": "sudo chattr +i /etc/resolv.conf", "does": "Make a file immutable: even root cannot change or delete it", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo chattr -i /etc/resolv.conf", "does": "Remove the immutable attribute again", "danger": "modify"}],
+ "pitfalls": ["'Operation not permitted' as root on a normal file: check lsattr for an i."],
+ "see_also": ["lsattr"]},
+
+{"name": "lsattr", "summary": "Show special file attributes", "man": ["lsattr(1)"],
+ "tasks": ["why can't root delete a file"],
+ "examples": [
+  {"level": "basic", "cmd": "lsattr /etc/resolv.conf", "does": "Attributes of a file; an i means immutable", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["chattr"]},
+
+{"name": "aa-status", "summary": "AppArmor status", "man": ["aa-status(8)"],
+ "tasks": ["is apparmor blocking a program", "apparmor profiles"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo aa-status", "does": "Loaded profiles, and which are enforcing or only complaining", "danger": "read-only"}],
+ "pitfalls": ["AppArmor denials are logged: sudo journalctl -k | grep -i apparmor"],
+ "see_also": ["journalctl"]},
+
+{"name": "openssl", "summary": "Inspect certificates and test TLS", "man": ["openssl(1ssl)"],
+ "tasks": ["when does a certificate expire", "check a server's certificate", "create a certificate request"],
+ "examples": [
+  {"level": "basic", "cmd": "openssl x509 -in cert.pem -noout -subject -issuer -dates", "does": "Who a certificate is for, who signed it, and its dates", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "openssl s_client -connect <HOST>:443 -servername <HOST>", "does": "Connect to a TLS server and show its certificate chain (Ctrl-C to quit)", "danger": "read-only"},
+  {"level": "advanced", "cmd": "openssl req -new -newkey rsa:2048 -nodes -keyout server.key -out server.csr", "does": "A new private key and a certificate request to send to your CA", "danger": "modify"}],
+ "pitfalls": ["-nodes leaves the private key unencrypted. Protect it with chmod 600."],
+ "see_also": ["curl"]}
+]

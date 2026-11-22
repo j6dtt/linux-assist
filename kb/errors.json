@@ -1,0 +1,890 @@
+[
+ {
+  "id": "enospc",
+  "title": "No space left on device",
+  "match": [
+   "No space left on device",
+   "ENOSPC",
+   "disk full"
+  ],
+  "causes": [
+   {
+    "cause": "The filesystem is full.",
+    "cmd": "df -h",
+    "danger": "read-only",
+    "fix": "Find what fills it: la guide disk-full"
+   },
+   {
+    "cause": "Out of inodes: too many small files, while space is left (IUse% 100).",
+    "cmd": "df -i",
+    "danger": "read-only",
+    "fix": "Find the folder with most files:",
+    "fix_cmd": "sudo du --inodes -x -d 1 / | sort -n"
+   },
+   {
+    "cause": "A deleted file is still held open by a process; its space is not freed yet.",
+    "cmd": "sudo lsof +L1",
+    "danger": "read-only",
+    "fix": "Restart the process that holds it (often a service)."
+   }
+  ]
+ },
+ {
+  "id": "eacces",
+  "title": "Permission denied",
+  "match": [
+   "Permission denied",
+   "EACCES"
+  ],
+  "causes": [
+   {
+    "cause": "The permissions on the file, or on a folder on the way to it, don't allow it.",
+    "cmd": "namei -l /path/to/file",
+    "danger": "read-only",
+    "fix": "Every folder on the path needs x for you; the file needs r (or w)."
+   },
+   {
+    "cause": "It needs root.",
+    "cmd": "sudo -l",
+    "danger": "read-only",
+    "fix": "Run it with sudo, if you are allowed."
+   },
+   {
+    "cause": "An ACL rule limits access.",
+    "cmd": "getfacl /path/to/file",
+    "danger": "read-only"
+   },
+   {
+    "cause": "AppArmor blocked the program.",
+    "cmd": "sudo journalctl -k | grep -i apparmor",
+    "danger": "read-only"
+   },
+   {
+    "cause": "The filesystem is mounted noexec (for 'Permission denied' when running a script).",
+    "cmd": "findmnt -T /path/to/file",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "eperm",
+  "title": "Operation not permitted",
+  "match": [
+   "Operation not permitted",
+   "EPERM"
+  ],
+  "causes": [
+   {
+    "cause": "The file is immutable (chattr +i): even root cannot change it.",
+    "cmd": "lsattr /path/to/file",
+    "danger": "read-only",
+    "fix": "Remove the attribute:",
+    "fix_cmd": "sudo chattr -i /path/to/file"
+   },
+   {
+    "cause": "It needs root.",
+    "cmd": "sudo -l",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "eaddrinuse",
+  "title": "Address already in use",
+  "match": [
+   "Address already in use",
+   "EADDRINUSE",
+   "bind() to",
+   "port is already allocated"
+  ],
+  "causes": [
+   {
+    "cause": "Another process already listens on the port.",
+    "cmd": "sudo ss -tlpn 'sport = :<PORT>'",
+    "danger": "read-only",
+    "fix": "Stop that process or service, or use another port."
+   },
+   {
+    "cause": "Another process already listens on the port (second way to check).",
+    "cmd": "sudo lsof -i :<PORT>",
+    "danger": "read-only"
+   },
+   {
+    "cause": "Docker: another container already publishes that port.",
+    "cmd": "docker ps --filter publish=<PORT>",
+    "danger": "read-only",
+    "fix": "Stop that container, or publish a different server port (-p <OTHER>:<CONTAINER_PORT>)."
+   }
+  ]
+ },
+ {
+  "id": "econnrefused",
+  "title": "Connection refused",
+  "match": [
+   "Connection refused",
+   "ECONNREFUSED"
+  ],
+  "causes": [
+   {
+    "cause": "Nothing listens on that port on the server.",
+    "cmd": "sudo ss -tlpn",
+    "danger": "read-only",
+    "fix": "Start the service, or check it listens on the right address (0.0.0.0 vs 127.0.0.1)."
+   },
+   {
+    "cause": "The service is down.",
+    "cmd": "systemctl status <UNIT>",
+    "danger": "read-only"
+   },
+   {
+    "cause": "A firewall rejects the connection.",
+    "cmd": "sudo nft list ruleset",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "etimedout",
+  "title": "Connection timed out",
+  "match": [
+   "Connection timed out",
+   "ETIMEDOUT",
+   "timed out"
+  ],
+  "causes": [
+   {
+    "cause": "A firewall drops the packets (on this server, the other one, or in between).",
+    "cmd": "sudo ufw status verbose",
+    "danger": "read-only"
+   },
+   {
+    "cause": "No working route to the address.",
+    "cmd": "ip route get <IP>",
+    "danger": "read-only"
+   },
+   {
+    "cause": "The host is down or unreachable.",
+    "cmd": "ping -c 3 <IP>",
+    "danger": "read-only"
+   },
+   {
+    "cause": "The port is not reachable: test it directly.",
+    "cmd": "nc -zv -w 3 <IP> <PORT>",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "ehostunreach",
+  "title": "No route to host / Network is unreachable",
+  "match": [
+   "No route to host",
+   "Network is unreachable",
+   "EHOSTUNREACH",
+   "ENETUNREACH"
+  ],
+  "causes": [
+   {
+    "cause": "No route, or no default gateway.",
+    "cmd": "ip route",
+    "danger": "read-only"
+   },
+   {
+    "cause": "The interface is down or has no address.",
+    "cmd": "ip -br addr",
+    "danger": "read-only"
+   },
+   {
+    "cause": "A firewall rejects with 'host unreachable'.",
+    "cmd": "sudo nft list ruleset",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "dns",
+  "title": "Name resolution fails",
+  "match": [
+   "Temporary failure in name resolution",
+   "Name or service not known",
+   "Could not resolve host",
+   "NXDOMAIN",
+   "SERVFAIL"
+  ],
+  "causes": [
+   {
+    "cause": "No DNS server set, or the wrong one.",
+    "cmd": "resolvectl status",
+    "danger": "read-only"
+   },
+   {
+    "cause": "The DNS server can't answer for this name.",
+    "cmd": "resolvectl query <NAME>",
+    "danger": "read-only"
+   },
+   {
+    "cause": "Ask a DNS server directly, bypassing the local resolver.",
+    "cmd": "dig @<DNS> <NAME>",
+    "danger": "read-only"
+   },
+   {
+    "cause": "/etc/hosts has a wrong entry for the name.",
+    "cmd": "getent hosts <NAME>",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "apt-lock",
+  "title": "Could not get lock (apt or dpkg)",
+  "match": [
+   "Could not get lock",
+   "Unable to acquire the dpkg frontend lock",
+   "lock-frontend",
+   "is held by process"
+  ],
+  "causes": [
+   {
+    "cause": "Another apt or dpkg is running (often unattended-upgrades).",
+    "cmd": "pgrep -a -f 'apt|dpkg|unattended'",
+    "danger": "read-only",
+    "fix": "Wait for it to finish. Never delete the lock files."
+   },
+   {
+    "cause": "Automatic updates are running.",
+    "cmd": "systemctl status unattended-upgrades",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "dpkg-interrupted",
+  "title": "dpkg was interrupted",
+  "match": [
+   "dpkg was interrupted",
+   "dpkg --configure -a"
+  ],
+  "causes": [
+   {
+    "cause": "A package install stopped halfway.",
+    "cmd": "dpkg --audit",
+    "danger": "read-only",
+    "fix": "Finish it:",
+    "fix_cmd": "sudo dpkg --configure -a"
+   }
+  ]
+ },
+ {
+  "id": "apt-fetch",
+  "title": "apt can't reach its sources",
+  "match": [
+   "Failed to fetch",
+   "Temporary failure resolving",
+   "Could not connect to",
+   "Unable to connect to"
+  ],
+  "causes": [
+   {
+    "cause": "The sources point to internet mirrors that an air-gapped server can't reach.",
+    "cmd": "grep -rh -E '^(deb|URIs)' /etc/apt/sources.list /etc/apt/sources.list.d/",
+    "danger": "read-only",
+    "fix": "Point them at your internal mirror, or install offline: la guide offline-package-install"
+   },
+   {
+    "cause": "DNS can't resolve the mirror's name.",
+    "cmd": "resolvectl status",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "erofs",
+  "title": "Read-only file system",
+  "match": [
+   "Read-only file system",
+   "EROFS"
+  ],
+  "causes": [
+   {
+    "cause": "The kernel remounted it read-only after finding errors.",
+    "cmd": "sudo dmesg -T | grep -i -E 'ext4|xfs|remount'",
+    "danger": "read-only",
+    "fix": "Plan a filesystem check (e2fsck) with it unmounted, and check the disk's health."
+   },
+   {
+    "cause": "It is mounted read-only on purpose.",
+    "cmd": "findmnt -T /path",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "eio",
+  "title": "Input/output error",
+  "match": [
+   "Input/output error",
+   "EIO",
+   "I/O error"
+  ],
+  "causes": [
+   {
+    "cause": "The disk is failing, or its connection is.",
+    "cmd": "sudo dmesg -T | grep -i -E 'i/o error|blk_update_request|ata'",
+    "danger": "read-only"
+   },
+   {
+    "cause": "Check the disk's own health report.",
+    "cmd": "sudo smartctl -H /dev/<DISK>",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "ebusy",
+  "title": "Device or resource busy / target is busy",
+  "match": [
+   "Device or resource busy",
+   "target is busy",
+   "EBUSY"
+  ],
+  "causes": [
+   {
+    "cause": "A process uses files on it, or has its working folder there.",
+    "cmd": "sudo lsof +D <MOUNT>",
+    "danger": "read-only"
+   },
+   {
+    "cause": "Same check, listing processes by mount.",
+    "cmd": "sudo fuser -vm <MOUNT>",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "emfile",
+  "title": "Too many open files",
+  "match": [
+   "Too many open files",
+   "EMFILE",
+   "ENFILE"
+  ],
+  "causes": [
+   {
+    "cause": "The process hit its open-file limit.",
+    "cmd": "cat /proc/<PID>/limits",
+    "danger": "read-only",
+    "fix": "For a service, raise LimitNOFILE in an override: sudo systemctl edit <UNIT>"
+   },
+   {
+    "cause": "The service's configured limit.",
+    "cmd": "systemctl show <UNIT> -p LimitNOFILE",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "oom",
+  "title": "Out of memory: process killed",
+  "match": [
+   "Out of memory",
+   "oom-kill",
+   "Killed process",
+   "oom_reaper"
+  ],
+  "causes": [
+   {
+    "cause": "The kernel killed a process to free memory. The log names it.",
+    "cmd": "journalctl -k -g 'out of memory'",
+    "danger": "read-only"
+   },
+   {
+    "cause": "What uses memory now.",
+    "cmd": "ps -eo pid,user,%mem,rss,cmd --sort=-rss | head",
+    "danger": "read-only"
+   },
+   {
+    "cause": "Memory and swap left.",
+    "cmd": "free -h",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "unit-failed",
+  "title": "Job for a service failed",
+  "match": [
+   "Job for",
+   "failed because the control process exited with error code",
+   "See \"systemctl status"
+  ],
+  "causes": [
+   {
+    "cause": "The service's program exited with an error. Its log says why.",
+    "cmd": "journalctl -u <UNIT> -n 50 --no-pager",
+    "danger": "read-only",
+    "fix": "Step by step: la guide service-wont-start"
+   },
+   {
+    "cause": "State and exit code.",
+    "cmd": "systemctl status <UNIT>",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "start-limit",
+  "title": "Start request repeated too quickly",
+  "match": [
+   "start request repeated too quickly",
+   "start-limit-hit"
+  ],
+  "causes": [
+   {
+    "cause": "It failed several times in a row and systemd stopped trying.",
+    "cmd": "journalctl -u <UNIT> -n 50 --no-pager",
+    "danger": "read-only",
+    "fix": "Fix the error, then clear the state:",
+    "fix_cmd": "sudo systemctl reset-failed <UNIT>"
+   }
+  ]
+ },
+ {
+  "id": "unit-not-found",
+  "title": "Unit not found",
+  "match": [
+   "Unit",
+   "not found",
+   "could not be found"
+  ],
+  "causes": [
+   {
+    "cause": "The name is different. List the units that exist.",
+    "cmd": "systemctl list-unit-files --type=service",
+    "danger": "read-only",
+    "fix": "On Ubuntu, SSH is ssh.service (not sshd)."
+   },
+   {
+    "cause": "The package that provides it is not installed.",
+    "cmd": "apt-cache policy <PKG>",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "sudo-resolve",
+  "title": "sudo: unable to resolve host",
+  "match": [
+   "unable to resolve host"
+  ],
+  "causes": [
+   {
+    "cause": "The host name is missing from /etc/hosts.",
+    "cmd": "hostnamectl",
+    "danger": "read-only",
+    "fix": "Add a line '127.0.1.1  NAME' to /etc/hosts with the name hostnamectl shows."
+   },
+   {
+    "cause": "Show what /etc/hosts says.",
+    "cmd": "cat /etc/hosts",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "not-sudoers",
+  "title": "User is not in the sudoers file",
+  "match": [
+   "is not in the sudoers file",
+   "is not allowed to run sudo",
+   "not in the sudoers"
+  ],
+  "causes": [
+   {
+    "cause": "The account is not in group sudo, and no rule allows it.",
+    "cmd": "id -nG <USER>",
+    "danger": "read-only",
+    "fix": "Another admin adds it:",
+    "fix_cmd": "sudo usermod -aG sudo <USER>"
+   }
+  ]
+ },
+ {
+  "id": "ssh-hostkey",
+  "title": "SSH host key changed",
+  "match": [
+   "REMOTE HOST IDENTIFICATION HAS CHANGED",
+   "Host key verification failed"
+  ],
+  "causes": [
+   {
+    "cause": "The server was rebuilt or its keys changed, or something is intercepting the connection.",
+    "cmd": "sudo ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub",
+    "danger": "read-only",
+    "fix": "On the server, compare this fingerprint with the one ssh shows. Only if they match, remove the old key on your side:",
+    "fix_cmd": "ssh-keygen -R <HOST>"
+   }
+  ]
+ },
+ {
+  "id": "ssh-publickey",
+  "title": "SSH login refused: Permission denied (publickey)",
+  "match": [
+   "Permission denied (publickey",
+   "No supported authentication methods"
+  ],
+  "causes": [
+   {
+    "cause": "Your key is not offered, or not the right one. -v shows which keys are tried.",
+    "cmd": "ssh -v <USER>@<HOST>",
+    "danger": "read-only"
+   },
+   {
+    "cause": "The server rejected the key; its log says why (often permissions).",
+    "cmd": "sudo journalctl -u ssh -n 50 --no-pager",
+    "danger": "read-only"
+   },
+   {
+    "cause": "The .ssh folder or authorized_keys is writable by others, so sshd ignores it.",
+    "cmd": "stat -c '%a %U %n' /home/<USER> /home/<USER>/.ssh /home/<USER>/.ssh/authorized_keys",
+    "danger": "read-only",
+    "fix": "Folder 700, file 600, both owned by the user."
+   }
+  ]
+ },
+ {
+  "id": "tls-verify",
+  "title": "TLS certificate verify failed",
+  "match": [
+   "certificate verify failed",
+   "SSL certificate problem",
+   "unable to get local issuer certificate",
+   "certificate has expired"
+  ],
+  "causes": [
+   {
+    "cause": "The certificate expired, or is not valid yet.",
+    "cmd": "openssl s_client -connect <HOST>:443 -servername <HOST>",
+    "danger": "read-only"
+   },
+   {
+    "cause": "This server's clock is wrong, so valid certificates look expired.",
+    "cmd": "timedatectl",
+    "danger": "read-only"
+   },
+   {
+    "cause": "Your internal CA is not trusted on this server.",
+    "cmd": "ls /usr/local/share/ca-certificates/",
+    "danger": "read-only",
+    "fix": "Copy the CA (.crt) into that folder, then:",
+    "fix_cmd": "sudo update-ca-certificates"
+   }
+  ]
+ },
+ {
+  "id": "fs-corrupt",
+  "title": "Structure needs cleaning",
+  "match": [
+   "Structure needs cleaning",
+   "EUCLEAN",
+   "EXT4-fs error"
+  ],
+  "causes": [
+   {
+    "cause": "Filesystem damage found by the kernel.",
+    "cmd": "sudo dmesg -T | grep -i -E 'ext4-fs|structure'",
+    "danger": "read-only",
+    "fix": "Unmount it and repair: sudo e2fsck -f /dev/PART (for / boot into recovery). Check disk health first."
+   }
+  ]
+ },
+ {
+  "id": "cmd-not-found",
+  "title": "command not found",
+  "match": [
+   "command not found"
+  ],
+  "causes": [
+   {
+    "cause": "The program is not installed, or not on your PATH.",
+    "cmd": "type <COMMAND>",
+    "danger": "read-only"
+   },
+   {
+    "cause": "It is installed in a folder that is not on your PATH (e.g. /usr/sbin for normal users).",
+    "cmd": "echo \"$PATH\"",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "bad-interpreter",
+  "title": "Script: bad interpreter, or No such file or directory although it exists",
+  "match": [
+   "bad interpreter",
+   "/bin/bash^M",
+   "No such file or directory"
+  ],
+  "causes": [
+   {
+    "cause": "The script has Windows line endings (shows as ^M).",
+    "cmd": "cat -A <FILE> | head -n 3",
+    "danger": "read-only",
+    "fix": "Remove them:",
+    "fix_cmd": "sed -i 's/\\r$//' <FILE>"
+   },
+   {
+    "cause": "The first line names an interpreter that is not installed.",
+    "cmd": "head -n 1 <FILE>",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "arg-too-long",
+  "title": "Argument list too long",
+  "match": [
+   "Argument list too long",
+   "E2BIG"
+  ],
+  "causes": [
+   {
+    "cause": "A wildcard expanded to too many file names.",
+    "cmd": "find . -maxdepth 1 -name '*.log' | wc -l",
+    "danger": "read-only",
+    "fix": "Let find run the command instead:",
+    "fix_cmd": "find . -maxdepth 1 -name '*.log' -exec gzip {} +"
+   }
+  ]
+ },
+ {
+  "id": "text-busy",
+  "title": "Text file busy",
+  "match": [
+   "Text file busy",
+   "ETXTBSY"
+  ],
+  "causes": [
+   {
+    "cause": "The program file is running, so it can't be overwritten.",
+    "cmd": "sudo lsof <FILE>",
+    "danger": "read-only",
+    "fix": "Stop the program first, or write the new file elsewhere and mv it into place."
+   }
+  ]
+ },
+ {
+  "id": "docker-daemon",
+  "title": "Cannot connect to the Docker daemon",
+  "match": [
+   "Cannot connect to the Docker daemon",
+   "Is the docker daemon running?"
+  ],
+  "causes": [
+   {
+    "cause": "Docker isn't running.",
+    "cmd": "systemctl status docker",
+    "danger": "read-only",
+    "fix": "Start it:",
+    "fix_cmd": "sudo systemctl start docker",
+    "fix_danger": "modify"
+   },
+   {
+    "cause": "docker points at another host or context.",
+    "cmd": "docker context ls",
+    "danger": "read-only",
+    "fix": "Switch back to this server's Docker:",
+    "fix_cmd": "docker context use default",
+    "fix_danger": "modify"
+   }
+  ]
+ },
+ {
+  "id": "docker-socket",
+  "title": "No permission to use Docker",
+  "match": [
+   "permission denied while trying to connect to the Docker daemon socket",
+   "docker.sock: connect: permission denied"
+  ],
+  "causes": [
+   {
+    "cause": "Your user isn't in the docker group, or hasn't logged in again since it was added.",
+    "cmd": "id",
+    "danger": "read-only",
+    "fix": "Run it with sudo. Or an admin adds you (the docker group is as powerful as root), then you log in again:",
+    "fix_cmd": "sudo usermod -aG docker <USER>",
+    "fix_danger": "modify"
+   }
+  ]
+ },
+ {
+  "id": "docker-no-image",
+  "title": "Docker can't find or download the image",
+  "match": [
+   "pull access denied",
+   "manifest unknown",
+   "repository does not exist",
+   "No such image"
+  ],
+  "causes": [
+   {
+    "cause": "The image isn't on this server, and an air-gapped server can't download it.",
+    "cmd": "docker images",
+    "danger": "read-only",
+    "fix": "Load it from a saved file (made with docker save):",
+    "fix_cmd": "docker load -i <FILE>.tar",
+    "fix_danger": "modify"
+   },
+   {
+    "cause": "The name or tag is misspelled: compare it with what docker images lists.",
+    "cmd": "docker images",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "k8s-image-pull",
+  "title": "A pod can't pull its image (ImagePullBackOff)",
+  "match": [
+   "ImagePullBackOff",
+   "ErrImagePull",
+   "Failed to pull image"
+  ],
+  "causes": [
+   {
+    "cause": "The image name or tag is wrong, or the registry doesn't have it. Events show the exact message.",
+    "cmd": "kubectl describe pod <POD> -n <NAMESPACE>",
+    "danger": "read-only"
+   },
+   {
+    "cause": "The nodes can't reach the registry. Air-gapped, it must be an internal registry the nodes reach.",
+    "cmd": "kubectl get events -n <NAMESPACE> --sort-by=.lastTimestamp",
+    "danger": "read-only"
+   },
+   {
+    "cause": "The registry needs a login and the pod has no pull secret.",
+    "cmd": "kubectl get pod <POD> -n <NAMESPACE> -o jsonpath='{.spec.imagePullSecrets}'",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "k8s-crashloop",
+  "title": "A pod keeps crashing (CrashLoopBackOff)",
+  "match": [
+   "CrashLoopBackOff",
+   "Back-off restarting failed container"
+  ],
+  "causes": [
+   {
+    "cause": "The app exits on start; the reason is in the log of the run that crashed.",
+    "cmd": "kubectl logs <POD> -n <NAMESPACE> --previous",
+    "danger": "read-only",
+    "fix": "Step by step: la guide pod-not-running"
+   },
+   {
+    "cause": "It is killed for memory (Last State: OOMKilled) or by a failing liveness probe (Events).",
+    "cmd": "kubectl describe pod <POD> -n <NAMESPACE>",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "container-oom",
+  "title": "A container was killed for using too much memory",
+  "match": [
+   "OOMKilled"
+  ],
+  "causes": [
+   {
+    "cause": "Kubernetes: the container went over its memory limit (Last State: OOMKilled, exit code 137).",
+    "cmd": "kubectl describe pod <POD> -n <NAMESPACE>",
+    "danger": "read-only",
+    "fix": "Raise the memory limit in its deployment, or find why it uses so much."
+   },
+   {
+    "cause": "Docker: the container went over its memory limit, or the server ran out (oom=true).",
+    "cmd": "docker inspect -f 'oom={{.State.OOMKilled}} limit={{.HostConfig.Memory}}' <CONTAINER>",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "k8s-scheduling",
+  "title": "A pod can't be placed on any node (Pending)",
+  "match": [
+   "FailedScheduling",
+   "Insufficient cpu",
+   "Insufficient memory",
+   "nodes are available"
+  ],
+  "causes": [
+   {
+    "cause": "No node has enough free CPU or memory for the pod's requests, or none matches its node rules. Events name the reason.",
+    "cmd": "kubectl describe pod <POD> -n <NAMESPACE>",
+    "danger": "read-only"
+   },
+   {
+    "cause": "Nodes are NotReady or cordoned (SchedulingDisabled).",
+    "cmd": "kubectl get nodes",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "k8s-login",
+  "title": "kubectl's login was refused",
+  "match": [
+   "You must be logged in to the server",
+   "the server has asked for the client to provide credentials"
+  ],
+  "causes": [
+   {
+    "cause": "Your login token has expired: log in again the way your cluster gives logins (for VKS, the kubectl vsphere plugin).",
+    "cmd": "kubectl config current-context",
+    "danger": "read-only"
+   },
+   {
+    "cause": "kubectl is pointed at another cluster than you meant.",
+    "cmd": "kubectl config get-contexts",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "k8s-forbidden",
+  "title": "Your Kubernetes login may not do that",
+  "match": [
+   "is forbidden: User",
+   "cannot list resource",
+   "cannot get resource",
+   "cannot create resource"
+  ],
+  "causes": [
+   {
+    "cause": "Your login has no permission for that, in that namespace.",
+    "cmd": "kubectl auth can-i --list -n <NAMESPACE>",
+    "danger": "read-only"
+   }
+  ]
+ },
+ {
+  "id": "k8s-connect",
+  "title": "kubectl can't reach the cluster",
+  "match": [
+   "Unable to connect to the server",
+   "The connection to the server"
+  ],
+  "causes": [
+   {
+    "cause": "kubectl has no kubeconfig, or the wrong one (localhost:8080 means none).",
+    "cmd": "kubectl config view --minify",
+    "danger": "read-only"
+   },
+   {
+    "cause": "The cluster's API address can't be reached from this server.",
+    "cmd": "kubectl cluster-info",
+    "danger": "read-only"
+   }
+  ]
+ }
+]

@@ -1,0 +1,64 @@
+{
+ "id": "ufw-setup",
+ "title": "Turn on the firewall without locking yourself out",
+ "tasks": [
+  "enable firewall",
+  "set up ufw",
+  "firewall allow ssh"
+ ],
+ "placeholders": {
+  "PORT": {
+   "means": "another port to open, e.g. 443",
+   "find": "sudo ss -tulpn"
+  }
+ },
+ "steps": [
+  {
+   "stage": "check",
+   "say": "Current state.",
+   "cmd": "sudo ufw status verbose",
+   "danger": "read-only"
+  },
+  {
+   "stage": "change",
+   "say": "Allow SSH FIRST.",
+   "cmd": "sudo ufw allow 22/tcp",
+   "danger": "modify",
+   "rollback": "Remove the rule:",
+   "rollback_cmd": "sudo ufw delete allow 22/tcp"
+  },
+  {
+   "stage": "change",
+   "say": "Allow the other ports the server needs.",
+   "cmd": "sudo ufw allow <PORT>/tcp",
+   "danger": "modify",
+   "rollback": "Remove the rule:",
+   "rollback_cmd": "sudo ufw delete allow <PORT>/tcp"
+  },
+  {
+   "stage": "change",
+   "say": "Block other incoming traffic by default.",
+   "cmd": "sudo ufw default deny incoming",
+   "danger": "modify",
+   "rollback": "Allow again:",
+   "rollback_cmd": "sudo ufw default allow incoming"
+  },
+  {
+   "stage": "change",
+   "say": "Turn the firewall on, now and at boot.",
+   "cmd": "sudo ufw enable",
+   "danger": "modify",
+   "rollback": "Turn it off:",
+   "rollback_cmd": "sudo ufw disable"
+  },
+  {
+   "stage": "verify",
+   "say": "Rules in force.",
+   "cmd": "sudo ufw status numbered",
+   "danger": "read-only"
+  }
+ ],
+ "pitfalls": [
+  "Docker-published ports bypass ufw rules."
+ ]
+}

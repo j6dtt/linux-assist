@@ -1,0 +1,65 @@
+{
+ "id": "process-owner",
+ "title": "Which app, container or service a process belongs to",
+ "tasks": [
+  "which app is this process",
+  "which container is this process in",
+  "which container a process belongs to",
+  "find the container of a pid",
+  "which pod is this process",
+  "which service started this process",
+  "what is this process"
+ ],
+ "placeholders": {
+  "PID": {
+   "means": "the process ID, e.g. 68110",
+   "find": "ps aux"
+  },
+  "CONTAINER": {
+   "means": "the long ID after docker- in step 2 (its first 12 characters are enough)",
+   "find": "cat /proc/<PID>/cgroup"
+  },
+  "POD_UID": {
+   "means": "the ID after pod in step 2, with each _ typed as -",
+   "find": "cat /proc/<PID>/cgroup"
+  }
+ },
+ "steps": [
+  {
+   "stage": "check",
+   "say": "What it is, who runs it and for how long. PPID is the process that started it.",
+   "cmd": "ps -o pid,ppid,user,etime,cmd -p <PID>",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Where it lives. docker-...scope: a Docker container (steps 3-4). kubepods ... pod...: a Kubernetes pod (step 5). ....service: a systemd service (step 6). user.slice: someone started it from a login.",
+   "cmd": "cat /proc/<PID>/cgroup",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Docker: the container's name, the compose file that started it, and its service.",
+   "cmd": "docker inspect -f '{{.Name}} {{index .Config.Labels \"com.docker.compose.project.config_files\"}} {{index .Config.Labels \"com.docker.compose.service\"}}' <CONTAINER>",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Docker: the server folders it uses; the app's files are usually in one of them.",
+   "cmd": "docker inspect -f '{{range .Mounts}}{{.Source}} -> {{.Destination}} {{end}}' <CONTAINER>",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Kubernetes: the pod with that UID. Run it where kubectl is logged in to that cluster.",
+   "cmd": "kubectl get pods -A -o custom-columns=NAMESPACE:.metadata.namespace,POD:.metadata.name,UID:.metadata.uid | grep <POD_UID>",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "systemd: the service it belongs to, with its state and last log lines.",
+   "cmd": "systemctl status <PID>",
+   "danger": "read-only"
+  }
+ ]
+}

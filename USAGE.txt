@@ -1,0 +1,118 @@
+la: how to use it (Ubuntu 22.04 and 24.04)
+
+la looks things up. It never runs a command and never reads this
+server. You copy what it shows and run it yourself. Answers match
+this server's Ubuntu release; add --release 22.04 (or 24.04) to
+any command to see the other one.
+
+  la help                  this list, short
+  la version               what the KB holds
+
+
+LOOK UP A COMMAND
+  la show ss               KB card: examples, danger, see also
+  la show tree             no card: the man page summary [man]
+  la show ss --man | less  the whole man page
+  la show docker           Docker: containers, images, compose
+  la show kubectl          Kubernetes: pods, deployments, nodes
+  la show kubectl rollout status    one subcommand [help]
+  la show docker container ls       one subcommand [man]
+
+FIND THE COMMAND FOR A TASK
+  la find "free up disk space"
+  la find "which process uses a port"
+  la find "which container a process belongs to"
+
+CHECK A COMMAND LINE BEFORE YOU RUN IT
+  la explain "sudo ss -tulpn"
+  la explain "find /var/log -name *.gz -delete"
+  la explain "docker compose -f app.yml logs -f web"
+  la explain "kubectl -n app rollout restart deploy/web"
+  Every flag is looked up in this release's man page (kubectl and
+  docker compose: their --help text). It warns about quoting, sudo
+  with >, chmod 777, deleting images on an air-gapped server, and
+  checking the kubectl context before a change.
+
+AN ERROR MESSAGE
+  la why "No space left on device"
+  journalctl -u ssh -n 100 | la why
+  sudo tail -n 200 /var/log/syslog | la why
+  Shows the known causes, a command to confirm each, and the fix.
+
+STEP-BY-STEP GUIDES
+  la guide list
+  la guide lvm-extend          shows the values it needs first
+  la guide lvm-extend NEW_DISK=sdb VG=ubuntu-vg LV=ubuntu-lv \
+        SIZE=20G MOUNT=/
+  la guide process-owner PID=68110   which app owns a process
+  la guide container-keeps-restarting CONTAINER=web
+  la guide pod-not-running NAMESPACE=app POD=api-0
+  Each step says CHECK / CHANGE, its danger, and how to undo it.
+
+READ OUTPUT YOU PIPE IN (fixed rules, no AI)
+  df -h | la interpret
+  free -m | la interpret
+  uptime | la interpret --cpus "$(nproc)"
+  vmstat 1 5 | la interpret
+  iostat -x 1 3 | la interpret
+  ss -tulpn | la interpret
+  systemctl --failed | la interpret
+  lsblk | la interpret
+  journalctl -p err -n 200 | la interpret
+  docker ps -a | la interpret
+  kubectl get pods -A | la interpret
+  It knows: df free uptime vmstat iostat ss systemctl lsblk apt
+  pods docker and logs. If it can't tell which, name it:
+  ... | la interpret df
+
+ASK IN PLAIN ENGLISH (AI)
+  la ask "which process listens on port 443"
+  la ask "how do I see who logged in yesterday"
+  systemctl status ssh | la ask "why did ssh restart?"
+  la ask -v "..."          -v: shows each step as it happens
+  Host names, IPs, MACs and user names are masked before the
+  question leaves the server, and put back in the answer. Every
+  command in the answer is checked in the man pages. If the model
+  can't be reached, la ask says why and shows "la find" instead.
+
+
+LABELS
+  ✅ KB            from the checked KB, for this release
+  [man]           from this release's man page
+  [help]          from --help text (kubectl, docker compose)
+  🟡              AI-written, every flag found in the man page
+  🔴              not in the man page or --help: do not run it
+  READ-ONLY       only looks
+  MODIFY ⚠        changes the system; read the undo line
+  DESTRUCTIVE ⛔   deletes or overwrites; check twice
+
+EXIT CODES (for scripts)
+  0  found / all fine
+  1  not found, or a problem was found (🔴, a warning)
+  2  wrong usage, or input it doesn't understand
+  3  la ask: no model answer, the KB search was shown instead
+  4  la could not start (Docker, or the image is not loaded)
+
+
+WHEN SOMETHING GOES WRONG
+  "the image la:1.0 is not loaded"
+      docker load < /opt/la/image.tar.gz
+  "this user can't use Docker"
+      run it as: sudo la ...   (or join the docker group)
+  la ask: "The model URL still has a placeholder"
+      sudo vi /opt/la/compose.yaml   settings block, llm-url
+  la ask: "Cannot reach the model server" / "gave no reply"
+      the model server is down or blocked; lookups still work
+  la ask: "certificate failed the check"
+      a private CA: see llm-ca-file in the settings block
+  la ask: "refused access (HTTP 401)"   (GPT-5.4 only)
+      sudo vi /opt/la/.env   LLM_API_KEY=...
+
+DOCKER AND KUBERNETES
+  Checked against docker-ce-cli 28.5.1, docker-compose-plugin
+  2.40.2 and kubectl 1.34.13 (la version shows them). Plugins such
+  as kubectl vsphere are not covered: explain marks them 🔴.
+
+Settings (model, timeout, masking) are in the SETTINGS block at
+the top of /opt/la/compose.yaml. A change takes effect on the
+next la command: nothing to restart.

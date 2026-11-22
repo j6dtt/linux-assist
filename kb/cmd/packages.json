@@ -1,0 +1,57 @@
+[
+{"name": "apt", "summary": "Install, update and remove packages", "man": ["apt(8)"],
+ "tasks": ["install a package", "update the server", "list upgradeable packages", "remove a package", "is a package installed", "package version", "remove unused packages"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo apt update", "does": "Refresh the package lists from the configured sources", "danger": "modify"},
+  {"level": "basic", "cmd": "apt list --upgradeable", "does": "Packages that have a newer version", "danger": "read-only"},
+  {"level": "basic", "cmd": "sudo apt install nginx", "does": "Install a package and what it needs", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo apt upgrade", "does": "Upgrade installed packages (never removes any)", "danger": "modify"},
+  {"level": "intermediate", "cmd": "apt list --installed", "does": "Every installed package", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "apt policy nginx", "does": "Installed version, available versions and where they come from (22.04: use apt-cache policy)", "danger": "read-only", "releases": ["24.04"]},
+  {"level": "intermediate", "cmd": "sudo apt remove nginx", "does": "Remove a package, keep its config files", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo apt purge nginx", "does": "Remove a package and its config files", "danger": "destructive"},
+  {"level": "advanced", "cmd": "sudo apt autoremove", "does": "Remove packages nothing needs any more (read the list before saying yes)", "danger": "modify"}],
+ "pitfalls": ["The man page spells it --upgradeable; apt also accepts --upgradable.",
+              "In scripts use apt-get: apt's output format may change between releases.",
+              "In an air-gapped network, apt update needs an internal mirror in /etc/apt/sources.list.d/."],
+ "see_also": ["apt-get", "apt-cache", "dpkg"]},
+
+{"name": "apt-get", "summary": "Package tool for scripts; also downloads .deb files", "man": ["apt-get(8)"],
+ "tasks": ["install without recommended packages", "simulate an upgrade", "download a .deb for an offline server"],
+ "examples": [
+  {"level": "intermediate", "cmd": "sudo apt-get install -y --no-install-recommends nginx", "does": "Install without the extra 'recommended' packages", "danger": "modify"},
+  {"level": "intermediate", "cmd": "apt-get -s upgrade", "does": "Simulate an upgrade: show what would change", "danger": "read-only"},
+  {"level": "advanced", "cmd": "apt-get download nginx", "does": "Download the .deb into the current folder without installing (carry it to an offline server)", "danger": "modify"}],
+ "pitfalls": ["apt-get download fetches one package only, not what it depends on. List those with apt-cache depends."],
+ "see_also": ["apt", "dpkg", "apt-cache"]},
+
+{"name": "apt-cache", "summary": "Look up package information", "man": ["apt-cache(8)"],
+ "tasks": ["package dependencies", "what depends on a package", "search packages by name", "where does a package version come from"],
+ "examples": [
+  {"level": "basic", "cmd": "apt-cache policy nginx", "does": "Installed and candidate versions, and their sources", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "apt-cache depends nginx", "does": "What a package needs", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "apt-cache rdepends --installed libssl3", "does": "Installed packages that need this one", "danger": "read-only"},
+  {"level": "advanced", "cmd": "apt-cache search --names-only nginx", "does": "Packages with the word in their name", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["apt", "dpkg"]},
+
+{"name": "dpkg", "summary": "Low-level package tool: install .deb files, query what is installed", "man": ["dpkg(1)"],
+ "tasks": ["install a .deb file", "which package owns a file", "files in a package", "is a package installed", "fix interrupted package install"],
+ "examples": [
+  {"level": "basic", "cmd": "dpkg -l | grep nginx", "does": "Installed packages matching a name (ii = installed)", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "dpkg -L nginx-common", "does": "Files a package installed", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "dpkg -S /usr/sbin/nginx", "does": "Which package a file belongs to", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo dpkg -i ./package.deb", "does": "Install a .deb file (dependencies must already be installed)", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo dpkg --configure -a", "does": "Finish package setups that were interrupted", "danger": "modify"}],
+ "pitfalls": ["dpkg -i does not fetch dependencies. With an internal mirror, sudo apt install ./package.deb does."],
+ "see_also": ["apt", "apt-get"]},
+
+{"name": "apt-mark", "summary": "Hold packages at their version", "man": ["apt-mark(8)"],
+ "tasks": ["stop a package from upgrading", "list held packages"],
+ "examples": [
+  {"level": "intermediate", "cmd": "sudo apt-mark hold linux-image-generic", "does": "Keep a package at its current version", "danger": "modify"},
+  {"level": "intermediate", "cmd": "apt-mark showhold", "does": "Packages on hold", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo apt-mark unhold linux-image-generic", "does": "Allow upgrades again", "danger": "modify"}],
+ "pitfalls": ["Held packages also miss security fixes. Note why each one is held."],
+ "see_also": ["apt"]}
+]

@@ -1,0 +1,85 @@
+{
+ "id": "lvm-extend",
+ "title": "Add a new disk and grow an LVM volume",
+ "tasks": [
+  "extend a logical volume with a new disk",
+  "grow /var with a new disk",
+  "add disk to LVM",
+  "disk full, new disk added"
+ ],
+ "placeholders": {
+  "NEW_DISK": {
+   "means": "the new, empty disk, e.g. sdb",
+   "find": "lsblk"
+  },
+  "VG": {
+   "means": "the volume group, e.g. ubuntu-vg",
+   "find": "sudo vgs"
+  },
+  "LV": {
+   "means": "the logical volume to grow, e.g. ubuntu-lv",
+   "find": "sudo lvs"
+  },
+  "SIZE": {
+   "means": "how much to add, e.g. 20G (at most the VFree shown by vgs)",
+   "find": "sudo vgs"
+  },
+  "MOUNT": {
+   "means": "where the volume is mounted, e.g. /var",
+   "find": "df -h"
+  }
+ },
+ "steps": [
+  {
+   "stage": "check",
+   "say": "Find the new disk: TYPE disk, no partitions under it, no mount point.",
+   "cmd": "lsblk",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Note the volume group name.",
+   "cmd": "sudo vgs",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Note the logical volume to grow.",
+   "cmd": "sudo lvs",
+   "danger": "read-only"
+  },
+  {
+   "stage": "prepare",
+   "say": "Make the new disk an LVM physical volume. This overwrites anything on it.",
+   "cmd": "sudo pvcreate /dev/<NEW_DISK>",
+   "danger": "destructive",
+   "rollback": "Undo while the disk is not yet in a volume group:",
+   "rollback_cmd": "sudo pvremove /dev/<NEW_DISK>",
+   "rollback_danger": "destructive"
+  },
+  {
+   "stage": "change",
+   "say": "Add the disk to the volume group. VFree in vgs grows.",
+   "cmd": "sudo vgextend <VG> /dev/<NEW_DISK>",
+   "danger": "modify",
+   "rollback": "Undo while no volume uses the new space:",
+   "rollback_cmd": "sudo vgreduce <VG> /dev/<NEW_DISK>"
+  },
+  {
+   "stage": "change",
+   "say": "Grow the volume and its filesystem in one step (-r).",
+   "cmd": "sudo lvextend -r -L +<SIZE> <VG>/<LV>",
+   "danger": "modify",
+   "rollback": "No simple undo: ext4 can only be shrunk unmounted, XFS never. Grow in small steps."
+  },
+  {
+   "stage": "verify",
+   "say": "The filesystem shows the new size.",
+   "cmd": "df -h <MOUNT>",
+   "danger": "read-only"
+  }
+ ],
+ "pitfalls": [
+  "Check the disk name twice: pvcreate on the wrong disk destroys its data."
+ ]
+}

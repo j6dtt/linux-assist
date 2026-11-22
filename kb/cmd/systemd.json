@@ -1,0 +1,86 @@
+[
+{"name": "systemctl", "summary": "Start, stop and inspect services (systemd)", "man": ["systemctl(1)"],
+ "tasks": ["restart a service", "is a service running", "service won't start", "start a service at boot", "failed services", "list timers", "show a service's unit file", "override a service setting"],
+ "examples": [
+  {"level": "basic", "cmd": "systemctl status nginx", "does": "Running or not, since when, and its last log lines", "danger": "read-only"},
+  {"level": "basic", "cmd": "sudo systemctl restart nginx", "does": "Stop and start a service", "danger": "modify"},
+  {"level": "basic", "cmd": "systemctl --failed", "does": "Units that failed", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo systemctl enable --now nginx", "does": "Start now and at every boot", "danger": "modify"},
+  {"level": "intermediate", "cmd": "systemctl is-enabled nginx", "does": "Will it start at boot", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "systemctl list-timers", "does": "Scheduled timers: next and last run", "danger": "read-only"},
+  {"level": "advanced", "cmd": "systemctl cat nginx", "does": "The unit file and any overrides, as systemd reads them", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo systemctl edit nginx", "does": "Add an override (kept when the package updates)", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo systemctl daemon-reload", "does": "Re-read unit files after editing them by hand", "danger": "modify"}],
+ "pitfalls": ["After editing a unit file by hand, run daemon-reload, or systemd keeps using the old one.",
+              "reload re-reads config without stopping; not every service supports it. restart always works but drops connections."],
+ "see_also": ["journalctl", "systemd-analyze"]},
+
+{"name": "journalctl", "summary": "Read the system log (systemd journal)", "man": ["journalctl(1)"],
+ "tasks": ["logs of a service", "follow a service log", "errors since boot", "logs from the last hour", "logs from the previous boot", "journal disk usage", "shrink the journal"],
+ "examples": [
+  {"level": "basic", "cmd": "journalctl -u nginx -n 50 --no-pager", "does": "The last 50 log lines of one service", "danger": "read-only"},
+  {"level": "basic", "cmd": "journalctl -u nginx -f", "does": "Follow a service's log live (Ctrl-C stops)", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "journalctl -p err -b", "does": "Errors and worse since this boot", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "journalctl --since '1 hour ago'", "does": "Everything from the last hour", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "journalctl --boot=-1 -k", "does": "Kernel messages from the previous boot (after a crash)", "danger": "read-only"},
+  {"level": "advanced", "cmd": "journalctl --disk-usage", "does": "How much disk the journal uses", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo journalctl --vacuum-size=500M", "does": "Delete the oldest archived logs until the journal is under 500 MB", "danger": "destructive"}],
+ "pitfalls": ["Without sudo, or membership of the adm or systemd-journal group, you may only see your own logs.",
+              "The previous boot's logs exist only if the journal is stored on disk (/var/log/journal)."],
+ "see_also": ["systemctl", "dmesg"]},
+
+{"name": "systemd-analyze", "summary": "Boot time and unit file checks", "man": ["systemd-analyze(1)"],
+ "tasks": ["why is boot slow", "check a unit file for mistakes", "how secure is a service"],
+ "examples": [
+  {"level": "basic", "cmd": "systemd-analyze blame", "does": "Units sorted by how long they took to start", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "systemd-analyze critical-chain", "does": "The chain of units that set the boot time", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "systemd-analyze verify /etc/systemd/system/app.service", "does": "Check a unit file for mistakes", "danger": "read-only"},
+  {"level": "advanced", "cmd": "systemd-analyze security nginx", "does": "How much a service is sandboxed, with a score", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["systemctl"]},
+
+{"name": "timedatectl", "summary": "Time, time zone and time sync", "man": ["timedatectl(1)"],
+ "tasks": ["is the clock synced", "change time zone", "server time is wrong"],
+ "examples": [
+  {"level": "basic", "cmd": "timedatectl", "does": "Local time, UTC, time zone, and whether the clock is synced", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "timedatectl list-timezones", "does": "Valid time zone names", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo timedatectl set-timezone UTC", "does": "Set the time zone", "danger": "modify"},
+  {"level": "advanced", "cmd": "timedatectl timesync-status", "does": "Time server, offset and poll interval (systemd-timesyncd)", "danger": "read-only"}],
+ "pitfalls": ["In an air-gapped network, time sync needs an internal NTP server set in /etc/systemd/timesyncd.conf."],
+ "see_also": ["date"]},
+
+{"name": "hostnamectl", "summary": "Show or set the host name", "man": ["hostnamectl(1)"],
+ "tasks": ["change hostname", "OS and kernel version"],
+ "examples": [
+  {"level": "basic", "cmd": "hostnamectl", "does": "Host name, OS, kernel and hardware", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo hostnamectl hostname web01", "does": "Set the host name", "danger": "modify"}],
+ "pitfalls": ["Also update the name in /etc/hosts, or sudo may print 'unable to resolve host'."],
+ "see_also": ["uname"]},
+
+{"name": "crontab", "summary": "Scheduled jobs per user", "man": ["crontab(1)"],
+ "tasks": ["list cron jobs", "edit cron jobs", "another user's cron jobs"],
+ "examples": [
+  {"level": "basic", "cmd": "crontab -l", "does": "Your scheduled jobs", "danger": "read-only"},
+  {"level": "basic", "cmd": "crontab -e", "does": "Edit your scheduled jobs", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo crontab -u www-data -l", "does": "Another user's jobs", "danger": "read-only"}],
+ "pitfalls": ["System-wide jobs are also in /etc/crontab and /etc/cron.d/, and many are systemd timers (systemctl list-timers).",
+              "Cron runs with a minimal PATH. Use full paths in jobs."],
+ "see_also": ["systemctl"]},
+
+{"name": "logrotate", "summary": "Rotate and compress log files", "man": ["logrotate(8)"],
+ "tasks": ["test a logrotate config", "force log rotation", "logs are not rotating"],
+ "examples": [
+  {"level": "intermediate", "cmd": "sudo logrotate -d /etc/logrotate.d/nginx", "does": "Dry run: shows what would happen, changes nothing", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo logrotate -f /etc/logrotate.d/nginx", "does": "Rotate now, even if it is not due", "danger": "modify"}],
+ "pitfalls": [],
+ "see_also": ["journalctl"]},
+
+{"name": "dmesg", "summary": "Kernel messages", "man": ["dmesg(1)"],
+ "tasks": ["kernel errors", "disk errors", "out of memory killer", "hardware messages"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo dmesg -T | tail -n 50", "does": "The last 50 kernel messages with readable times", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo dmesg -T --level=err,warn", "does": "Only errors and warnings", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo dmesg -T -w", "does": "Follow new kernel messages (Ctrl-C stops)", "danger": "read-only"}],
+ "pitfalls": ["The -T times can drift after suspend. journalctl -k has exact times."],
+ "see_also": ["journalctl"]}
+]

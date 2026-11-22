@@ -1,0 +1,170 @@
+[
+{"name": "ls", "summary": "List files and folders", "man": ["ls(1)"],
+ "tasks": ["list files", "show hidden files", "newest files first", "file sizes in a folder", "permissions of a file"],
+ "examples": [
+  {"level": "basic", "cmd": "ls -la", "does": "Long list of everything here, hidden files included", "danger": "read-only"},
+  {"level": "basic", "cmd": "ls -lh /var/log", "does": "Sizes in K, M and G", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "ls -lt --time-style=long-iso /var/log | head", "does": "Newest first, with full dates", "danger": "read-only"},
+  {"level": "advanced", "cmd": "ls -ld /etc /var", "does": "Show the folders themselves, not what is inside them", "danger": "read-only"}],
+ "pitfalls": ["ls output is for people. In scripts, use find or a shell glob instead of reading ls output."],
+ "see_also": ["find", "stat", "tree"]},
+
+{"name": "cp", "summary": "Copy files and folders", "man": ["cp(1)"],
+ "tasks": ["copy a file", "back up a config file", "copy a folder keeping permissions"],
+ "examples": [
+  {"level": "basic", "cmd": "cp app.conf app.conf.bak", "does": "Copy a file, e.g. a backup before editing", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo cp -a /etc/nginx /root/nginx-backup", "does": "Copy a folder keeping owners, permissions and times", "danger": "modify"},
+  {"level": "intermediate", "cmd": "cp -i new.conf /etc/app/app.conf", "does": "Ask before overwriting", "danger": "modify"},
+  {"level": "advanced", "cmd": "cp --backup=numbered app.conf /etc/app/", "does": "Keep a numbered backup of any file it would overwrite", "danger": "modify"}],
+ "pitfalls": ["cp -r does not keep owners and permissions. Use -a for backups."],
+ "see_also": ["rsync", "mv"]},
+
+{"name": "mv", "summary": "Move or rename files", "man": ["mv(1)"],
+ "tasks": ["rename a file", "move files to another folder"],
+ "examples": [
+  {"level": "basic", "cmd": "mv old.log old.log.1", "does": "Rename a file", "danger": "modify"},
+  {"level": "intermediate", "cmd": "mv -i *.conf /etc/app/", "does": "Move, asking before overwriting", "danger": "modify"},
+  {"level": "advanced", "cmd": "mv -n report.csv /srv/reports/", "does": "Move, but never overwrite a file already there", "danger": "modify"}],
+ "pitfalls": ["Between filesystems mv copies and then deletes. A move cut off halfway can leave a partial copy."],
+ "see_also": ["cp", "rsync"]},
+
+{"name": "rm", "summary": "Remove files and folders (no undo)", "man": ["rm(1)"],
+ "tasks": ["delete a file", "delete a folder", "remove a file whose name starts with a dash"],
+ "examples": [
+  {"level": "basic", "cmd": "rm old.log", "does": "Delete one file", "danger": "destructive"},
+  {"level": "basic", "cmd": "rm -i *.tmp", "does": "Ask before deleting each file", "danger": "destructive"},
+  {"level": "intermediate", "cmd": "rm -r /tmp/build-old", "does": "Delete a folder and everything in it", "danger": "destructive"},
+  {"level": "advanced", "cmd": "rm -- -weird-name.txt", "does": "Delete a file whose name starts with a dash", "danger": "destructive"}],
+ "pitfalls": ["There is no trash on a server: deleted is gone.",
+              "A space in the wrong place (rm -r /var /log instead of /var/log) removes far more than meant. Run ls on the exact path first."],
+ "see_also": ["find"]},
+
+{"name": "mkdir", "summary": "Create folders", "man": ["mkdir(1)"],
+ "tasks": ["create a folder", "create nested folders"],
+ "examples": [
+  {"level": "basic", "cmd": "mkdir -p /srv/app/logs", "does": "Create a folder and any missing parent folders", "danger": "modify"},
+  {"level": "intermediate", "cmd": "mkdir -m 750 /srv/private", "does": "Create a folder with its permissions set", "danger": "modify"}],
+ "pitfalls": ["Without -p, mkdir fails if a parent folder is missing."],
+ "see_also": ["install", "chmod"]},
+
+{"name": "ln", "summary": "Create links to files", "man": ["ln(1)"],
+ "tasks": ["create a symbolic link", "switch a symlink to a new release", "enable an nginx site"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo ln -s /etc/nginx/sites-available/app /etc/nginx/sites-enabled/app", "does": "Create a symbolic link", "danger": "modify"},
+  {"level": "advanced", "cmd": "ln -sfn /opt/app/releases/v2 /opt/app/current", "does": "Point an existing link at a new target (switch release)", "danger": "modify"}],
+ "pitfalls": ["Without -n, ln -sf on a link to a folder puts the new link inside that folder."],
+ "see_also": ["readlink", "realpath"]},
+
+{"name": "touch", "summary": "Create an empty file or update its time", "man": ["touch(1)"],
+ "tasks": ["create an empty file", "change a file's time"],
+ "examples": [
+  {"level": "basic", "cmd": "touch /var/www/maintenance.flag", "does": "Create an empty file, or update its time if it exists", "danger": "modify"},
+  {"level": "intermediate", "cmd": "touch -d '2026-01-01 00:00' /tmp/marker", "does": "Set a chosen time, e.g. for find -newer", "danger": "modify"}],
+ "pitfalls": [],
+ "see_also": ["stat", "find"]},
+
+{"name": "find", "summary": "Search for files by name, size, age, owner or permissions", "man": ["find(1)"],
+ "tasks": ["find files by name", "find large files", "find files changed recently", "delete old log files", "find world-writable files", "find files with no owner", "what is filling the disk"],
+ "examples": [
+  {"level": "basic", "cmd": "find /etc -name '*.conf'", "does": "Files whose name ends in .conf", "danger": "read-only"},
+  {"level": "basic", "cmd": "find . -type f -mtime -1", "does": "Files changed in the last 24 hours", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo find / -xdev -type f -size +500M", "does": "Files over 500 MB on the root filesystem only", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo find /var/log -type f -name '*.gz' -mtime +30 -delete", "does": "Delete compressed logs older than 30 days", "danger": "destructive"},
+  {"level": "advanced", "cmd": "sudo find /srv -xdev -type f -perm -0002", "does": "World-writable files", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo find /home -nouser", "does": "Files whose owner account no longer exists", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo find /var/www -type f -exec chmod 644 {} +", "does": "Set every file under /var/www to 644", "danger": "modify"}],
+ "pitfalls": ["Put -delete last. Placed earlier, it deletes before the other tests run.",
+              "Quote patterns ('*.log'), or the shell expands them before find sees them.",
+              "Run the command without -delete first and read the list."],
+ "see_also": ["du", "xargs"]},
+
+{"name": "du", "summary": "Disk space used by files and folders", "man": ["du(1)"],
+ "tasks": ["what is filling the disk", "size of a folder", "biggest folders", "inodes used per folder"],
+ "examples": [
+  {"level": "basic", "cmd": "du -sh /var/log", "does": "Total size of one folder", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo du -xh --max-depth=1 /var | sort -h", "does": "Size of each folder in /var, biggest last", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo du -ah /var/log | sort -h | tail -n 20", "does": "The 20 biggest files and folders in /var/log", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo du --inodes -x -d 1 /var | sort -n", "does": "Number of files in each folder (when df -i shows inodes running out)", "danger": "read-only"}],
+ "pitfalls": ["A deleted file that a process still holds open uses space that du cannot see. Find it with: sudo lsof +L1"],
+ "see_also": ["df", "lsof"]},
+
+{"name": "df", "summary": "Free and used space per filesystem", "man": ["df(1)"],
+ "tasks": ["disk space", "is the disk full", "free space", "inodes free", "filesystem type"],
+ "examples": [
+  {"level": "basic", "cmd": "df -h", "does": "Space on every mounted filesystem", "danger": "read-only"},
+  {"level": "basic", "cmd": "df -hT", "does": "Same, with the filesystem type", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "df -i", "does": "Inodes: a disk can be full of small files while space is left", "danger": "read-only"},
+  {"level": "advanced", "cmd": "df -h --output=source,size,used,avail,pcent,target -x tmpfs -x devtmpfs", "does": "Chosen columns, without memory filesystems", "danger": "read-only"}],
+ "pitfalls": ["ext4 keeps about 5% for root by default, so Use% can reach 100% for normal users while Avail is still above 0 for root."],
+ "see_also": ["du", "findmnt", "lsblk"]},
+
+{"name": "stat", "summary": "Details of a file: owner, permissions, size, times", "man": ["stat(1)"],
+ "tasks": ["permissions as a number", "when was a file changed", "file owner"],
+ "examples": [
+  {"level": "basic", "cmd": "stat /etc/passwd", "does": "Owner, permissions, size and times", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "stat -c '%a %U:%G %n' /etc/ssh/sshd_config", "does": "Permissions as a number, with owner and group", "danger": "read-only"},
+  {"level": "advanced", "cmd": "stat -f /", "does": "The filesystem holding a path: type, block size, free blocks and inodes", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["ls", "getfacl"]},
+
+{"name": "file", "summary": "What kind of file something is", "man": ["file(1)"],
+ "tasks": ["file type", "what filesystem is on a partition"],
+ "examples": [
+  {"level": "basic", "cmd": "file /usr/bin/ls", "does": "What kind of file it is", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo file -s /dev/<PART>", "does": "What is on a disk or partition, e.g. an ext4 filesystem", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["blkid", "stat"]},
+
+{"name": "cat", "summary": "Print files", "man": ["cat(1)"],
+ "tasks": ["show a file", "show hidden characters", "Ubuntu version"],
+ "examples": [
+  {"level": "basic", "cmd": "cat /etc/os-release", "does": "Print a file (here: which Ubuntu release this is)", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "cat -A deploy.sh", "does": "Show hidden characters: tabs as ^I, Windows line ends as ^M", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "cat -n /etc/fstab", "does": "Number the lines", "danger": "read-only"}],
+ "pitfalls": ["For long files use less; cat floods the terminal."],
+ "see_also": ["less", "head", "tail"]},
+
+{"name": "less", "summary": "Read a long file one screen at a time", "man": ["less(1)"],
+ "tasks": ["read a log file", "search in a file", "follow a log"],
+ "examples": [
+  {"level": "basic", "cmd": "less /var/log/syslog", "does": "Read a file. / searches, n finds the next match, q quits", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "less -S /var/log/nginx/access.log", "does": "Don't wrap long lines (scroll sideways with the arrow keys)", "danger": "read-only"},
+  {"level": "advanced", "cmd": "less +F /var/log/syslog", "does": "Follow new lines like tail -f. Ctrl-C stops following, q quits", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["tail", "journalctl"]},
+
+{"name": "head", "summary": "The first lines of a file", "man": ["head(1)"],
+ "tasks": ["first lines of a file"],
+ "examples": [
+  {"level": "basic", "cmd": "head -n 20 /var/log/syslog", "does": "The first 20 lines", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "head -c 200 data.bin", "does": "The first 200 bytes", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["tail", "less"]},
+
+{"name": "tail", "summary": "The last lines of a file, or follow it live", "man": ["tail(1)"],
+ "tasks": ["last lines of a log", "follow a log file live", "skip the header line"],
+ "examples": [
+  {"level": "basic", "cmd": "tail -n 50 /var/log/syslog", "does": "The last 50 lines", "danger": "read-only"},
+  {"level": "basic", "cmd": "tail -f /var/log/nginx/access.log", "does": "Follow new lines as they arrive (Ctrl-C stops)", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "tail -F /var/log/app.log", "does": "Follow, and keep following after the log is rotated", "danger": "read-only"},
+  {"level": "advanced", "cmd": "tail -n +2 data.csv", "does": "Everything from line 2 on (skip a header)", "danger": "read-only"}],
+ "pitfalls": ["tail -f stops showing new lines when logrotate replaces the file. Use -F."],
+ "see_also": ["journalctl", "less"]},
+
+{"name": "wc", "summary": "Count lines, words and bytes", "man": ["wc(1)"],
+ "tasks": ["count lines", "how many processes"],
+ "examples": [
+  {"level": "basic", "cmd": "wc -l /etc/passwd", "does": "Number of lines (here: accounts)", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "ps -e --no-headers | wc -l", "does": "Number of running processes", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["grep", "sort"]},
+
+{"name": "diff", "summary": "Compare files or folders", "man": ["diff(1)"],
+ "tasks": ["compare two files", "what changed in a config", "compare two folders"],
+ "examples": [
+  {"level": "basic", "cmd": "diff -u app.conf.bak app.conf", "does": "Changes between two files, + added and - removed", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "diff -r /etc/nginx /root/nginx-backup", "does": "Compare two folders file by file", "danger": "read-only"},
+  {"level": "advanced", "cmd": "diff -q -r /etc/nginx /root/nginx-backup", "does": "Only name the files that differ", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["cmp", "sha256sum"]}
+]

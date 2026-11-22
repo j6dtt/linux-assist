@@ -1,0 +1,161 @@
+[
+{"name": "chmod", "summary": "Change file permissions", "man": ["chmod(1)"],
+ "tasks": ["change permissions", "make a script executable", "give a group read access to a folder"],
+ "examples": [
+  {"level": "basic", "cmd": "chmod u+x deploy.sh", "does": "Let the owner run the script", "danger": "modify"},
+  {"level": "basic", "cmd": "sudo chmod 640 /etc/app/secret.conf", "does": "Owner read/write, group read, others nothing", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo chmod -R g+rX /srv/shared", "does": "Group can read everything and open folders (X: folders and already-executable files only)", "danger": "modify"},
+  {"level": "advanced", "cmd": "chmod --reference=app.conf.bak app.conf", "does": "Copy the permissions of another file", "danger": "modify"}],
+ "pitfalls": ["chmod -R 777 is almost never the fix: it lets every user change the files.",
+              "Numbers: 4 read, 2 write, 1 execute, for owner, group and others. 640 = rw- r-- ---."],
+ "see_also": ["chown", "setfacl", "stat"]},
+
+{"name": "chown", "summary": "Change the owner and group of files", "man": ["chown(1)"],
+ "tasks": ["change file owner", "give a folder to the web server user"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo chown www-data:www-data /var/www/app", "does": "Set owner and group of one item", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo chown -R app:app /srv/app", "does": "Set owner and group of a whole folder", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo chown -h app:app /opt/app/current", "does": "Change a symbolic link itself, not its target", "danger": "modify"}],
+ "pitfalls": [],
+ "see_also": ["chmod", "id"]},
+
+{"name": "getfacl", "summary": "Show extra (ACL) permissions", "man": ["getfacl(1)"],
+ "tasks": ["show ACL permissions", "why can this user read the file"],
+ "examples": [
+  {"level": "basic", "cmd": "getfacl /srv/shared", "does": "Owner, group and any extra user or group rules", "danger": "read-only"}],
+ "pitfalls": ["A + at the end of the permissions in ls -l (drwxr-x---+) means an ACL is set."],
+ "see_also": ["setfacl", "chmod"]},
+
+{"name": "setfacl", "summary": "Give one user or group extra permissions (ACL)", "man": ["setfacl(1)"],
+ "tasks": ["give one user access to a folder", "default permissions for new files", "remove ACL"],
+ "examples": [
+  {"level": "intermediate", "cmd": "sudo setfacl -m u:alice:rx /srv/shared", "does": "Let user alice read and enter a folder", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo setfacl -R -m g:devs:rwX /srv/project", "does": "Group devs can read and write everything already there", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo setfacl -d -m g:devs:rwX /srv/project", "does": "New files created here get the same rule (default ACL)", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo setfacl -b /srv/project/file.txt", "does": "Remove all ACL rules from a file", "danger": "modify"}],
+ "pitfalls": ["-R changes what exists now. Add a default rule (-d) for files created later."],
+ "see_also": ["getfacl", "chmod"]},
+
+{"name": "id", "summary": "A user's ID and groups", "man": ["id(1)"],
+ "tasks": ["which groups is a user in", "my user ID"],
+ "examples": [
+  {"level": "basic", "cmd": "id", "does": "Your user ID, group and all your groups", "danger": "read-only"},
+  {"level": "basic", "cmd": "id alice", "does": "The same for another user", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "id -nG alice", "does": "Group names only", "danger": "read-only"}],
+ "pitfalls": ["A group added with usermod takes effect at the user's next login."],
+ "see_also": ["groups", "usermod"]},
+
+{"name": "useradd", "summary": "Create a user account", "man": ["useradd(8)"],
+ "tasks": ["create a user", "create a service account", "add a user with sudo"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo useradd -m -s /bin/bash alice", "does": "Create a user with a home folder and bash", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo useradd -m -s /bin/bash -G sudo alice", "does": "Same, and allow sudo (member of group sudo)", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo useradd -r -s /usr/sbin/nologin -d /srv/app app", "does": "A system account for a service: no login shell", "danger": "modify"}],
+ "pitfalls": ["Without -m, no home folder is created.", "Set a password afterwards with passwd, or the account cannot log in with one.",
+              "On Ubuntu, adduser asks for everything interactively and is easier by hand."],
+ "see_also": ["adduser", "passwd", "usermod"]},
+
+{"name": "usermod", "summary": "Change a user account", "man": ["usermod(8)"],
+ "tasks": ["add a user to a group", "lock an account", "change a user's shell"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo usermod -aG sudo alice", "does": "Add a user to a group, keeping their other groups", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo usermod -L alice", "does": "Lock the password (SSH keys still work)", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo usermod -s /usr/sbin/nologin alice", "does": "Stop the user getting a shell", "danger": "modify"}],
+ "pitfalls": ["Without -a, -G replaces ALL the user's extra groups with the ones listed."],
+ "see_also": ["id", "passwd", "chage"]},
+
+{"name": "userdel", "summary": "Delete a user account", "man": ["userdel(8)"],
+ "tasks": ["delete a user"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo userdel alice", "does": "Delete the account, keep the home folder", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo userdel -r alice", "does": "Delete the account, home folder and mail spool", "danger": "destructive"}],
+ "pitfalls": ["Files the user owned elsewhere keep the old number as owner. Find them with: sudo find / -xdev -nouser"],
+ "see_also": ["usermod", "find"]},
+
+{"name": "passwd", "summary": "Set or lock a password", "man": ["passwd(1)"],
+ "tasks": ["change a password", "lock an account", "password status", "force a password change"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo passwd alice", "does": "Set a user's password", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo passwd -S alice", "does": "Password status: P set, L locked, NP none", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo passwd -l alice", "does": "Lock the password", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo passwd -e alice", "does": "Make the user choose a new password at next login", "danger": "modify"}],
+ "pitfalls": ["Locking the password does not stop SSH key logins. To block a user fully, also set an expired date: sudo chage -E 0 alice"],
+ "see_also": ["chage", "usermod"]},
+
+{"name": "chage", "summary": "Password and account expiry", "man": ["chage(1)"],
+ "tasks": ["password expiry", "when does an account expire", "disable an account on a date"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo chage -l alice", "does": "Expiry dates for password and account", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo chage -M 90 alice", "does": "Password must change every 90 days", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo chage -E 2026-12-31 alice", "does": "Account stops working after this date", "danger": "modify"},
+  {"level": "advanced", "cmd": "sudo chage -E 0 alice", "does": "Disable the account now (any login method)", "danger": "modify"}],
+ "pitfalls": [],
+ "see_also": ["passwd", "usermod"]},
+
+{"name": "groupadd", "summary": "Create a group", "man": ["groupadd(8)"],
+ "tasks": ["create a group"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo groupadd devs", "does": "Create a group", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo groupadd -g 1500 devs", "does": "Create it with a chosen group ID (same ID on every server)", "danger": "modify"}],
+ "pitfalls": [],
+ "see_also": ["usermod", "gpasswd"]},
+
+{"name": "gpasswd", "summary": "Add or remove group members", "man": ["gpasswd(1)"],
+ "tasks": ["remove a user from a group"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo gpasswd -d alice docker", "does": "Remove a user from one group", "danger": "modify"},
+  {"level": "basic", "cmd": "sudo gpasswd -a alice devs", "does": "Add a user to one group", "danger": "modify"}],
+ "pitfalls": [],
+ "see_also": ["usermod", "id"]},
+
+{"name": "sudo", "summary": "Run a command as root or another user", "man": ["sudo(8)"],
+ "tasks": ["what am I allowed to run with sudo", "root shell", "run as another user"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo -l", "does": "What you may run with sudo", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo -i", "does": "A root login shell (exit to leave)", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo -u www-data ls /var/www", "does": "Run a command as another user", "danger": "read-only"},
+  {"level": "advanced", "cmd": "sudo -k", "does": "Forget the cached password; the next sudo asks again", "danger": "read-only"}],
+ "pitfalls": ["Edit sudo rules only with visudo. A syntax error in /etc/sudoers can lock everyone out of sudo."],
+ "see_also": ["visudo", "su"]},
+
+{"name": "visudo", "summary": "Edit sudo rules safely", "man": ["visudo(8)"],
+ "tasks": ["edit sudoers", "give a user sudo rights for one command", "check sudoers syntax"],
+ "examples": [
+  {"level": "basic", "cmd": "sudo visudo -f /etc/sudoers.d/deploy", "does": "Edit one rules file; it is checked before saving", "danger": "modify"},
+  {"level": "intermediate", "cmd": "sudo visudo -c", "does": "Check every sudo rules file for mistakes", "danger": "read-only"}],
+ "pitfalls": ["Files in /etc/sudoers.d/ whose names contain a dot or end in ~ are ignored."],
+ "see_also": ["sudo"]},
+
+{"name": "su", "summary": "Become another user", "man": ["su(1)"],
+ "tasks": ["switch user", "become root"],
+ "examples": [
+  {"level": "basic", "cmd": "su - alice", "does": "Log in as alice (her environment, her home folder)", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "sudo su -s /bin/bash www-data", "does": "Get a shell as a service user that has no login shell", "danger": "read-only"}],
+ "pitfalls": ["On Ubuntu root has no password by default, so su - fails; use sudo -i."],
+ "see_also": ["sudo"]},
+
+{"name": "w", "summary": "Who is logged in and what they are running", "man": ["w(1)"],
+ "tasks": ["who is logged in", "load average"],
+ "examples": [
+  {"level": "basic", "cmd": "w", "does": "Logged-in users, where from, idle time and current command", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "w -h", "does": "Same, without the header", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["who", "last"]},
+
+{"name": "who", "summary": "Logged-in users and the last boot", "man": ["who(1)"],
+ "tasks": ["when did the server boot", "who is logged in"],
+ "examples": [
+  {"level": "basic", "cmd": "who", "does": "Logged-in users", "danger": "read-only"},
+  {"level": "basic", "cmd": "who -b", "does": "Time of the last boot", "danger": "read-only"}],
+ "pitfalls": [],
+ "see_also": ["w", "uptime"]},
+
+{"name": "last", "summary": "Past logins and reboots", "man": ["last(1)"],
+ "tasks": ["who logged in recently", "when did the server reboot", "login history"],
+ "examples": [
+  {"level": "basic", "cmd": "last -n 20", "does": "The last 20 logins", "danger": "read-only"},
+  {"level": "basic", "cmd": "last reboot", "does": "Reboot history", "danger": "read-only"},
+  {"level": "intermediate", "cmd": "last -a alice", "does": "One user's logins, with the remote host shown last", "danger": "read-only"}],
+ "pitfalls": ["Failed logins are not here: use sudo lastb, or journalctl -u ssh."],
+ "see_also": ["w", "journalctl"]}
+]

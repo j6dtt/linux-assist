@@ -1,0 +1,78 @@
+{
+ "id": "disk-full",
+ "title": "Find what is filling a disk",
+ "tasks": [
+  "disk full",
+  "no space left on device",
+  "what is filling the disk",
+  "free up disk space"
+ ],
+ "placeholders": {
+  "MOUNT": {
+   "means": "the full filesystem's mount point, e.g. /var",
+   "find": "df -h"
+  }
+ },
+ "steps": [
+  {
+   "stage": "check",
+   "say": "Which filesystem is full: Use% near 100.",
+   "cmd": "df -h",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "If space is left but IUse% is 100, the disk is full of small files, not big ones.",
+   "cmd": "df -i",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Biggest folders on that filesystem. Repeat one level further down the biggest.",
+   "cmd": "sudo du -xh --max-depth=1 <MOUNT> | sort -h",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Big single files on that filesystem.",
+   "cmd": "sudo find <MOUNT> -xdev -type f -size +500M",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Deleted files still held open: their space returns only when that process restarts.",
+   "cmd": "sudo lsof +L1",
+   "danger": "read-only"
+  },
+  {
+   "stage": "check",
+   "say": "Space used by the system journal.",
+   "cmd": "journalctl --disk-usage",
+   "danger": "read-only"
+  },
+  {
+   "stage": "change",
+   "say": "If the journal is big: delete the oldest logs until it is under 500 MB.",
+   "cmd": "sudo journalctl --vacuum-size=500M",
+   "danger": "destructive",
+   "rollback": "Deleted logs cannot be restored."
+  },
+  {
+   "stage": "change",
+   "say": "Remove downloaded package files (.deb) from apt's cache.",
+   "cmd": "sudo apt-get clean",
+   "danger": "modify",
+   "rollback": "Nothing to undo: apt downloads them again when needed."
+  },
+  {
+   "stage": "verify",
+   "say": "Space is back.",
+   "cmd": "df -h <MOUNT>",
+   "danger": "read-only"
+  }
+ ],
+ "pitfalls": [
+  "Don't delete files in /var/lib or /var/lib/dpkg to make space: the system needs them.",
+  "Emptying a log that a process writes to (instead of deleting it) frees space at once: sudo truncate -s 0 FILE"
+ ]
+}
